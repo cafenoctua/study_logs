@@ -1,0 +1,13 @@
+datavault_test:
+  outputs:
+    dev:
+      account: dq29779.us-central1.gcp
+      database: DATAVAULT_TEST
+      password:
+      role: ACCOUNTADMIN
+      schema: DATAVAULT_TEST
+      threads: 4
+      type: snowflake
+      user: buuuno
+      warehouse: DATAVAULT_TEST
+  target: dev

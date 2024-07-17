@@ -1,0 +1,51 @@
+
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: 'datavault_test'
+version: '1.0.0'
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'datavault_test'
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+vars:
+  load_date: '1992-01-08'
+  tpch_size: 10 #1, 10, 100, 1000, 10000
+
+models:
+  dbtvault_snowflake_demo:
+    raw_stage:
+      +materialized: view
+      +tags:
+        - 'raw'
+    stage:
+      +materialized: view
+      +tags:
+        - 'stage'
+      +enabled: true
+    raw_vault:
+      +materialized: incremental
+      +tags:
+        - 'raw_vault'
+      hubs:
+        +tags:
+          - 'hub'
+      links:
+        +tags:
+          - 'link'
+      sats:
+        +tags:
+          - 'satellite'
+      t_links:
+        +tags:
+          - 't_link'
