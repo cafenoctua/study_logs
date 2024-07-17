@@ -3,7 +3,7 @@ datavault_test:
     dev:
       account: dq29779.us-central1.gcp
       database: DATAVAULT_TEST
-      password:
+      private_key_path: private_key.p8
       role: ACCOUNTADMIN
       schema: DATAVAULT_TEST
       threads: 4
