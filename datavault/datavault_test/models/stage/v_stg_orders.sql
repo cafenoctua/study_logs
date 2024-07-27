@@ -96,6 +96,7 @@ hashed_columns:
 
 {% set derived_columns = metadata_dict['derived_columns'] %}
 
+
 {% set hashed_columns = metadata_dict['hashed_columns'] %}
 
 WITH staging AS (
