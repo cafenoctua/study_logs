@@ -23,9 +23,7 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"HoliduGmbh.vscode-dbt-power-user-holidu",
-				"Fivetran.dbt-language-server",
-				"henriblancke.vscode-dbt-formatter"
+				"innoverio.vscode-dbt-power-user"
 			]
 		}
 	}
