@@ -1,0 +1,9 @@
+datavault_test:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: sweepsump
+      dataset: tpch_sf10_test # You can also use "schema" here
+      threads: 4 # Must be a value of 1 or greater 

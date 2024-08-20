@@ -1,0 +1,42 @@
+[
+  {
+    "name": "O_ORDERKEY",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "O_CUSTKEY",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "O_ORDERSTATUS",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "O_TOTALPRICE",
+    "type": "FLOAT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "O_ORDERDATE",
+    "type": "DATE",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "O_ORDERPRIORITY",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "O_CLERK",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "O_SHIPPRIORITY",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  }
+]

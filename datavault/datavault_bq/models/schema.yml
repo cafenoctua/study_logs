@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: tpch_sample
+    database: sweepsump
+    schema: tpch_sf10
+    tables:
+      - name: lineitem
+      - name: customer
+      - name: order
+      - name: partsupp
+      - name: supplier
+      - name: part
+      - name: nation
+      - name: region

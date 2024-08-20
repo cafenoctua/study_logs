@@ -2,12 +2,11 @@
 # Name your project! Project names should contain only lowercase characters
 # and underscores. A good package name should reflect your organization's
 # name or the intended use of these models
-name: 'ga4_modeling'
+name: 'datavault_test'
 version: '1.0.0'
-config-version: 2
 
 # This setting configures which "profile" dbt uses for this project.
-profile: 'ga4_modeling'
+profile: 'datavault_test'
 
 # These configurations specify where dbt should look for different types of files.
 # The `model-paths` config, for example, states that models in this project can be
@@ -19,22 +18,37 @@ seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
-clean-targets:         # directories to be removed by `dbt clean`
-  - "target"
-  - "dbt_packages"
-
 vars:
-  date: 2020-11-01
-  backfill: false
+  load_date: '1992-01-08'
+  tpch_size: 10 #1, 10, 100, 1000, 10000
 
-# Configuring models
-# Full documentation: https://docs.getdbt.com/docs/configuring-models
-
-# In this example config, we tell dbt to build all models in the example/
-# directory as views. These settings can be overridden in the individual model
-# files using the `{{ config(...) }}` macro.
 models:
-  ga4_modeling:
-    # Config indicated by + and applies to all files under models/example/
-    example:
+  datavault_test:
+    raw_stage:
       +materialized: view
+      +tags:
+        - 'raw'
+    stage:
+      +materialized: view
+      +tags:
+        - 'stage'
+      +enabled: true
+    raw_vault:
+      +materialized: incremental
+      +tags:
+        - 'raw_vault'
+      hubs:
+        +tags:
+          - 'hub'
+      links:
+        +tags:
+          - 'link'
+      sats:
+        +tags:
+          - 'satellite'
+      t_links:
+        +tags:
+          - 't_link'
+      ma_sats:
+        +tags:
+          - 'ma_sat'
