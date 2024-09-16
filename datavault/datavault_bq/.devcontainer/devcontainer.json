@@ -10,16 +10,16 @@
 		"dockerfile": "../../Dockerfile.d/Dockerfile.bigquery"
 	},
 	"mounts": [
-		"source=${localEnv:HOME}/.config/gcloud,target=/home/root/.gcloud/,type=bind,consistency=cached"
+		"source=${localEnv:HOME}/.config/gcloud/application_default_credentials.json,target=/root/.config/gcloud/application_default_credentials.json,type=bind,consistency=cached"
 	],
 	"forwardPorts": [8080, 8080],
 	"containerEnv": {
 		"DBT_PROFILES_DIR": "/workspaces/study_logs/datavault/datavault_bq/profiles"
 	},
 	"remoteUser": "root",
-	"remoteEnv": {
-		"CLOUDSDK_CONFIG": "/home/root/.gcloud"
-	},
+	// "remoteEnv": {
+	// 	"CLOUDSDK_CONFIG": "/home/root/.gcloud"
+	// },
 	"customizations": {
 		"vscode": {
 			"extensions": [
