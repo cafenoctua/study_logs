@@ -1,0 +1,2 @@
+ls: cannot access 'aaa': No such file or directory
+ls: cannot access 'aaa': No such file or directory
