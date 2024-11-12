@@ -1,0 +1,11 @@
+name: Annotation
+
+on: push
+
+jobs:
+  log:
+    runs-on: ububntu-latest
+    steps:
+      - run: echo "::error::This is an error"
+      - run: echo "::warning::This is an waring"
+      - run: echo "::notice::This is an notice"
