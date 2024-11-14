@@ -1,12 +1,1 @@
-name: Environment variables
 
-on: push
-
-jobs:
-  run:
-    runs-on: ubuntu-latest
-    env:
-      ACTOR: ${{ github.actor }}
-    steps:
-      - run: echo "${ACTOR}"
-      - run: echo Hello
