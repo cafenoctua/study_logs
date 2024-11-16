@@ -4,7 +4,7 @@ description: |
   ワークフローのデバッグに便利
 inputs:
   enable-context:
-    default: 'true
+    default: "true"
     required: false
     description: コンテキストのログを出力するか
 outputs:
