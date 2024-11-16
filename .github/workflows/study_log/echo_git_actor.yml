@@ -1,0 +1,13 @@
+
+<<<<<<< HEAD:.github/workflows/study_log/echo_git_actor.yml
+on: push
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      ACTOR: ${{ github.actor }}
+    steps:
+      - run: echo "${ACTOR}"
+=======
+>>>>>>> main:.github/workflows/echo_git_actor.yml

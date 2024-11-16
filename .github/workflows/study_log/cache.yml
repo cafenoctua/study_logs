@@ -1,0 +1,20 @@
+name: Cache
+
+on: push
+
+jobs:
+  cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          key: test-${{ runner.os }}-${{ github.sha }} # キャッシュキー
+          path: ${{ github.workflow }}/dummy # キャッシュ対象のパス
+          restore-keys: |
+            test-${{ runner.os }}-
+      - run: |
+          if [[ -f "${GITHUB_WORKSPACE}/dummy" ]]; then exit 0; fi
+          dd if=/dev/urandom of="${GITHUB_WORKSPACE}/dummy" bs=1M count=10
+          sleep 30
+      - run: ls -lh "${GITHUB_WORKSPACE}/dummy"
