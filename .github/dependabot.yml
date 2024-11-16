@@ -4,3 +4,11 @@ updates:
     directory: /
     schedule:
       interval: daily
+    ignore:
+      - dependency-name: actions/upload-artifact # 除外する依存関係の名前
+        versions: # 除外対象外のバージョン
+          - 4.3.0
+          - 4.3.1
+      - dependecy-name: "actions/*" # *は任意文字列にマッチ
+        update-types: # 除外するバージョンアップの種類
+          - version-update:semver-major
