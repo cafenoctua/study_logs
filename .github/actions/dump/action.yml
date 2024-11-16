@@ -20,7 +20,7 @@ runs:
       if: ${{ inputs.enable-context == 'true' }}
       env:
         CONTEXT: ${{ toJSON(github) }}
-        shell: bash
+      shell: bash
     - id: current
       run: echo "date=$(date)" >> "${GITHUB_OUTPUT}"
       shell: bash
