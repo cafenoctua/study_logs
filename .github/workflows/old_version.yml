@@ -1,7 +1,0 @@
-name: Old
-on: workflow_dispatch
-jobs:
-  tets:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/setup-go@v5
