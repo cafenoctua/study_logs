@@ -1,0 +1,10 @@
+name: Convert
+on: push
+env:
+  TIMEOUT: 1
+jobs:
+  sleep:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sleep 120
+        timeout-minutes: ${{ fromJson(env.TIMEOUT) }}

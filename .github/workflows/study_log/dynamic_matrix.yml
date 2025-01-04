@@ -1,0 +1,19 @@
+name: Dynamic matrix
+on: push
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - id: dynamic
+        run: |
+          json='{"runner": ["ubuntu-latest", "macos-latest"]}'
+          echo "json=${json}" >> "${GITHUB_OUTPUT}"
+    outputs:
+      matrix-json: ${{ steps.dynamic.outputs.json }}
+  print:
+    needs: [prepare]
+    strategy:
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix-json) }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - run: echo "${RUNNER_OS}"
