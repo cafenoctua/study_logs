@@ -1,0 +1,26 @@
+[project]
+name = "random-wikipedia-article-bebebeeeyan"
+version = "0.2"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["pytest"]
+# dynamic = ["version"]
+
+[project.scripts]
+random-wikipedia-article-bebebeeeyan = "random_wikipedia_article_bebebeeeyan:main"
+
+[project.entry-points.pytest11]
+random-wikipedia-article-bebebeeeyan = "random_wikipedia_article_bebebeeeyan"
+
+[tool.hatch.version]
+source = "vcs"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+# [[tool.uv.index]]
+# name = "testpypi"
+# url = "https://test.pypi.org/simple/"
+# publish-url = "https://test.pypi.org/legacy/"
