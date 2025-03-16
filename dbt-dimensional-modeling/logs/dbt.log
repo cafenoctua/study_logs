@@ -1,0 +1,30 @@
+[0m07:18:13.696772 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0xffff945c2a80>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0xffff94481e20>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0xffff945c30b0>]}
+
+
+============================== 07:18:13.722272 | 78a96bff-c684-40fb-ab82-42d0f946328d ==============================
+[0m07:18:13.722272 [info ] [MainThread]: Running with dbt=1.9.3
+[0m07:18:13.722554 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'log_cache_events': 'False', 'write_json': 'True', 'partial_parse': 'True', 'cache_selected_only': 'False', 'profiles_dir': '/workspaces/study_logs/dbt-dimensional-modeling/profiles', 'fail_fast': 'False', 'debug': 'False', 'log_path': 'logs', 'version_check': 'True', 'warn_error': 'None', 'use_colors': 'True', 'use_experimental_parser': 'False', 'no_print': 'None', 'quiet': 'False', 'empty': 'None', 'log_format': 'default', 'introspect': 'True', 'static_parser': 'True', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'target_path': 'None', 'invocation_command': 'dbt init', 'send_anonymous_usage_stats': 'True'}
+[0m07:18:33.048887 [debug] [MainThread]: Starter project path: /workspaces/study_logs/dbt-dimensional-modeling/.venv/lib/python3.12/site-packages/dbt/include/starter_project
+[0m07:18:33.072068 [info ] [MainThread]: 
+Your new dbt project "dbt_dimensional_modeling" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m07:18:33.072424 [info ] [MainThread]: Setting up your profile.
+[0m07:19:00.726589 [info ] [MainThread]: Profile dbt_dimensional_modeling written to /workspaces/study_logs/dbt-dimensional-modeling/profiles/profiles.yml using target's profile_template.yml and your supplied values. Run 'dbt debug' to validate the connection.
+[0m07:19:00.730168 [debug] [MainThread]: Resource report: {"command_name": "init", "command_success": true, "command_wall_clock_time": 47.063553, "process_in_blocks": "8", "process_kernel_time": 0.281926, "process_mem_max_rss": "198200", "process_out_blocks": "36563", "process_user_time": 2.470886}
+[0m07:19:00.730839 [debug] [MainThread]: Command `dbt init` succeeded at 07:19:00.730699 after 47.06 seconds
+[0m07:19:00.731484 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0xffff94a47aa0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0xffff6d17c680>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0xffff6d044440>]}
+[0m07:19:00.731997 [debug] [MainThread]: Flushing usage events
+[0m07:19:01.464934 [debug] [MainThread]: An error was encountered while trying to flush usage events

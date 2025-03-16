@@ -1,0 +1,7 @@
+version: 2
+
+sources:
+  - name: google_analytics_sample
+    database: bigquery-public-data
+    tables:
+      - name: ga_sessions_*

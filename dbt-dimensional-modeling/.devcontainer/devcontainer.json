@@ -1,0 +1,29 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-dockerfile
+{
+	"name": "dbt-dimensional-modeling",
+	"workspaceFolder": "/workspaces/study_logs/dbt-dimensional-modeling",
+	"build": {
+		// Sets the run context to one level up instead of the .devcontainer folder.
+		"context": "../",
+		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
+		"dockerfile": "../Dockerfile",
+		"target": "dbt-dev"
+	},
+	"mounts": [
+		"source=${localEnv:HOME}/.config/gcloud/application_default_credentials.json,target=/root/.config/gcloud/application_default_credentials.json,type=bind,consistency=cached"
+	],
+	"forwardPorts": [8080, 8080],
+	"containerEnv": {
+		"DBT_PROFILES_DIR": "/workspaces/study_logs/dbt-dimensional-modeling/profiles"
+	},
+	"remoteUser": "root",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"innoverio.vscode-dbt-power-user",
+				"tamasfe.even-better-toml"
+			]
+		}
+	}
+}
