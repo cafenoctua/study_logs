@@ -1,3 +1,54 @@
 {
-    "dbt.queryLimit": 50
+    "dbt.queryLimit": 50,
+    "[sql]": {
+        // The number of spaces a tab is equal to. This setting is overridden
+        // based on the file contents when `editor.detectIndentation` is true.
+        "editor.tabSize": 2,
+        
+        // Insert spaces when pressing Tab. This setting is overriden
+        // based on the file contents when `editor.detectIndentation` is true.
+        "editor.insertSpaces": true,
+        
+        // When opening a file, `editor.tabSize` and `editor.insertSpaces`
+        // will be detected based on the file contents. Set to false to keep
+        // the values you've explicitly set, above.
+        "editor.detectIndentation": false
+    },
+    "[yaml]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+        "editor.autoIndent": "advanced",
+        "diffEditor.ignoreTrimWhitespace": false,
+        "editor.defaultColorDecorators": "never"
+    },
+    "[jinja-sql]": {
+        // The number of spaces a tab is equal to. This setting is overridden
+        // based on the file contents when `editor.detectIndentation` is true.
+        "editor.tabSize": 2,
+        
+        // Insert spaces when pressing Tab. This setting is overriden
+        // based on the file contents when `editor.detectIndentation` is true.
+        "editor.insertSpaces": true,
+        
+        // When opening a file, `editor.tabSize` and `editor.insertSpaces`
+        // will be detected based on the file contents. Set to false to keep
+        // the values you've explicitly set, above.
+        "editor.detectIndentation": false
+    },
+    "[jinja-yaml]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+        "editor.autoIndent": "advanced",
+        "diffEditor.ignoreTrimWhitespace": false,
+        "editor.defaultColorDecorators": "never"
+    },
+    "[json]": {
+        "editor.quickSuggestions": {
+            "strings": true
+        },
+        "editor.suggest.insertMode": "replace",
+        "editor.tabSize": 2,
+        "editor.autoIndent": "advanced"
+    },
+    "dbt.perspectiveTheme": "Vintage"
 }

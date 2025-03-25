@@ -1,0 +1,5 @@
+SELECT
+  date,
+  REGEXP_CONTAINS(date, r'^201608(0[1-9]|1[0-5])$') AS is_in_range
+FROM
+  UNNEST(['20160731', '20160801', '20160805', '20160815', '20160816']) AS date;
