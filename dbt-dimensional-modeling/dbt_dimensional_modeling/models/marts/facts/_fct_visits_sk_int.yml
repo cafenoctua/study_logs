@@ -8,6 +8,8 @@ models:
         field: transaction_date
         data_type: date
         granularity: day
+      post_hook:
+        - "{{ set_foreign_key([{'fk_model': 'dim_users_sk_int', 'fk_col': 'user_sk'}]) }}"
     columns:
       - name: user_sk
         data_type: INT64

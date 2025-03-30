@@ -5,6 +5,11 @@ models:
       materialized: incremental
       incremental_stragegy: merge
       unique_key: user_sk
+      post_hook:
+        - "{{ set_primary_key(['user_sk']) }}"
+    constraints:
+      - type: primary_key
+        columns: [user_sk]
     columns:
       - name: user_sk
         data_type: INT64
