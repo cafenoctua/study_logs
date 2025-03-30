@@ -1,13 +1,15 @@
 version: 2
 models:
-  - name: dim_users
+  - name: dim_users_sk_int
     config:
       materialized: incremental
       incremental_stragegy: merge
       unique_key: user_sk
     columns:
       - name: user_sk
-        data_type: STRING
+        data_type: INT64
+        tests:
+          - unique
       - name: visitor_id
         data_type: STRING
       - name: continent

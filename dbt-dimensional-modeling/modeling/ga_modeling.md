@@ -3,7 +3,7 @@ erDiagram
     dim_user ||--o{ fct_visits : user_sk
     dim_user {
         string user_sk
-        string visitor_is
+        string visitor_id
         string continent
         string country
         string browser
