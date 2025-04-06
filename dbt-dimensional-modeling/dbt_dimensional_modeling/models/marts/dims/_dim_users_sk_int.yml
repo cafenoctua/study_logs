@@ -1,0 +1,41 @@
+version: 2
+models:
+  - name: dim_users_sk_int
+    config:
+      materialized: incremental
+      incremental_stragegy: merge
+      unique_key: user_sk
+      post_hook:
+        - "{{ set_primary_key(['user_sk']) }}"
+    constraints:
+      - type: primary_key
+        columns: [user_sk]
+    columns:
+      - name: user_sk
+        data_type: INT64
+        tests:
+          - unique
+      - name: visitor_id
+        data_type: STRING
+      - name: continent
+        data_type: STRING
+      - name: sub_continent
+        data_type: STRING
+      - name: country
+        data_type: STRING
+      - name: browser
+        data_type: STRING
+      - name: os
+        data_type: STRING
+      - name: device_category
+        data_type: STRING
+      - name: is_mobile
+        data_type: BOOLEAN
+      - name: hash_value
+        data_type: STRING
+      - name: valid_from
+        data_type: TIMESTAMP
+      - name: valid_to
+        data_type: TIMESTAMP
+      - name: is_current
+        data_type: BOOLEAN

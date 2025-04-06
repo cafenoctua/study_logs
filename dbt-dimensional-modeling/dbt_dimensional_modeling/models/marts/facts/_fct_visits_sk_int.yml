@@ -1,0 +1,29 @@
+version: 2
+models:
+  - name: fct_visits_sk_int
+    config:
+      materialized: incremental
+      incremental_strategy: insert_overwrite
+      partition_by:
+        field: transaction_date
+        data_type: date
+        granularity: day
+      post_hook:
+        - "{{ set_foreign_key([{'fk_model': 'dim_users_sk_int', 'fk_col': 'user_sk'}]) }}"
+    columns:
+      - name: user_sk
+        data_type: INT64
+      - name: transaction_date
+        data_type: date
+      - name: access_timestamp
+        data_type: TIMESTAMP
+      - name: is_new_visits
+        data_type: BOOLEAN
+      - name: visits
+        data_type: INT64
+      - name: hits
+        data_type: INT64
+      - name: pageviews
+        data_type: INT64
+      - name: time_on_site
+        data_type: INT64

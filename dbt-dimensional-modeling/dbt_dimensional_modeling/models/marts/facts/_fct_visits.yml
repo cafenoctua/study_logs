@@ -1,0 +1,27 @@
+version: 2
+models:
+  - name: fct_visits
+    config:
+      materialized: incremental
+      incremental_strategy: insert_overwrite
+      partition_by:
+        field: transaction_date
+        data_type: date
+        granularity: day
+    columns:
+      - name: user_sk
+        data_type: STRING
+      - name: transaction_date
+        data_type: date
+      - name: access_timestamp
+        data_type: TIMESTAMP
+      - name: is_new_visits
+        data_type: BOOLEAN
+      - name: visits
+        data_type: INT64
+      - name: hits
+        data_type: INT64
+      - name: pageviews
+        data_type: INT64
+      - name: time_on_site
+        data_type: INT64

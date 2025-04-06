@@ -1,0 +1,721 @@
+version: 2
+
+sources:
+  - name: google_analytics_sample
+    database: bigquery-public-data
+    tables:
+      - name: ga_sessions_*
+        columns:
+          - name: visitorId
+            data_type: INT64
+          - name: visitNumber
+            data_type: INT64
+          - name: visitId
+            data_type: INT64
+          - name: visitStartTime
+            data_type: INT64
+          - name: date
+            data_type: STRING
+          - name: totals
+            data_type: >-
+              STRUCT<`visits` INT64, `hits` INT64, `pageviews` INT64, `timeOnSite` INT64, `bounces` INT64,
+              `transactions` INT64, `transactionRevenue` INT64, `newVisits` INT64, `screenviews` INT64,
+              `uniqueScreenviews` INT64, `timeOnScreen` INT64, `totalTransactionRevenue` INT64, `sessionQualityDim`
+              INT64>
+          - name: totals.visits
+            data_type: INT64
+          - name: totals.hits
+            data_type: INT64
+          - name: totals.pageviews
+            data_type: INT64
+          - name: totals.timeOnSite
+            data_type: INT64
+          - name: totals.bounces
+            data_type: INT64
+          - name: totals.transactions
+            data_type: INT64
+          - name: totals.transactionRevenue
+            data_type: INT64
+          - name: totals.newVisits
+            data_type: INT64
+          - name: totals.screenviews
+            data_type: INT64
+          - name: totals.uniqueScreenviews
+            data_type: INT64
+          - name: totals.timeOnScreen
+            data_type: INT64
+          - name: totals.totalTransactionRevenue
+            data_type: INT64
+          - name: totals.sessionQualityDim
+            data_type: INT64
+          - name: trafficSource
+            data_type: >-
+              STRUCT<`referralPath` STRING, `campaign` STRING, `source` STRING, `medium` STRING, `keyword`
+              STRING, `adContent` STRING, `adwordsClickInfo` STRUCT<`campaignId` INT64, `adGroupId` INT64,
+              `creativeId` INT64, `criteriaId` INT64, `page` INT64, `slot` STRING, `criteriaParameters`
+              STRING, `gclId` STRING, `customerId` INT64, `adNetworkType` STRING, `targetingCriteria`
+              STRUCT<`boomUserlistId` INT64>, `isVideoAd` BOOLEAN>, `isTrueDirect` BOOLEAN, `campaignCode`
+              STRING>
+          - name: trafficSource.referralPath
+            data_type: STRING
+          - name: trafficSource.campaign
+            data_type: STRING
+          - name: trafficSource.source
+            data_type: STRING
+          - name: trafficSource.medium
+            data_type: STRING
+          - name: trafficSource.keyword
+            data_type: STRING
+          - name: trafficSource.adContent
+            data_type: STRING
+          - name: trafficSource.adwordsClickInfo.campaignId
+            data_type: INT64
+          - name: trafficSource.adwordsClickInfo.adGroupId
+            data_type: INT64
+          - name: trafficSource.adwordsClickInfo.creativeId
+            data_type: INT64
+          - name: trafficSource.adwordsClickInfo.criteriaId
+            data_type: INT64
+          - name: trafficSource.adwordsClickInfo.page
+            data_type: INT64
+          - name: trafficSource.adwordsClickInfo.slot
+            data_type: STRING
+          - name: trafficSource.adwordsClickInfo.criteriaParameters
+            data_type: STRING
+          - name: trafficSource.adwordsClickInfo.gclId
+            data_type: STRING
+          - name: trafficSource.adwordsClickInfo.customerId
+            data_type: INT64
+          - name: trafficSource.adwordsClickInfo.adNetworkType
+            data_type: STRING
+          - name: trafficSource.adwordsClickInfo.targetingCriteria.boomUserlistId
+            data_type: INT64
+          - name: trafficSource.adwordsClickInfo.isVideoAd
+            data_type: BOOLEAN
+          - name: trafficSource.isTrueDirect
+            data_type: BOOLEAN
+          - name: trafficSource.campaignCode
+            data_type: STRING
+          - name: device
+            data_type: >-
+              STRUCT<`browser` STRING, `browserVersion` STRING, `browserSize` STRING, `operatingSystem`
+              STRING, `operatingSystemVersion` STRING, `isMobile` BOOLEAN, `mobileDeviceBranding` STRING,
+              `mobileDeviceModel` STRING, `mobileInputSelector` STRING, `mobileDeviceInfo` STRING, `mobileDeviceMarketingName`
+              STRING, `flashVersion` STRING, `javaEnabled` BOOLEAN, `language` STRING, `screenColors`
+              STRING, `screenResolution` STRING, `deviceCategory` STRING>
+          - name: device.browser
+            data_type: STRING
+          - name: device.browserVersion
+            data_type: STRING
+          - name: device.browserSize
+            data_type: STRING
+          - name: device.operatingSystem
+            data_type: STRING
+          - name: device.operatingSystemVersion
+            data_type: STRING
+          - name: device.isMobile
+            data_type: BOOLEAN
+          - name: device.mobileDeviceBranding
+            data_type: STRING
+          - name: device.mobileDeviceModel
+            data_type: STRING
+          - name: device.mobileInputSelector
+            data_type: STRING
+          - name: device.mobileDeviceInfo
+            data_type: STRING
+          - name: device.mobileDeviceMarketingName
+            data_type: STRING
+          - name: device.flashVersion
+            data_type: STRING
+          - name: device.javaEnabled
+            data_type: BOOLEAN
+          - name: device.language
+            data_type: STRING
+          - name: device.screenColors
+            data_type: STRING
+          - name: device.screenResolution
+            data_type: STRING
+          - name: device.deviceCategory
+            data_type: STRING
+          - name: geoNetwork
+            data_type: >-
+              STRUCT<`continent` STRING, `subContinent` STRING, `country` STRING, `region` STRING, `metro`
+              STRING, `city` STRING, `cityId` STRING, `networkDomain` STRING, `latitude` STRING, `longitude`
+              STRING, `networkLocation` STRING>
+          - name: geoNetwork.continent
+            data_type: STRING
+          - name: geoNetwork.subContinent
+            data_type: STRING
+          - name: geoNetwork.country
+            data_type: STRING
+          - name: geoNetwork.region
+            data_type: STRING
+          - name: geoNetwork.metro
+            data_type: STRING
+          - name: geoNetwork.city
+            data_type: STRING
+          - name: geoNetwork.cityId
+            data_type: STRING
+          - name: geoNetwork.networkDomain
+            data_type: STRING
+          - name: geoNetwork.latitude
+            data_type: STRING
+          - name: geoNetwork.longitude
+            data_type: STRING
+          - name: geoNetwork.networkLocation
+            data_type: STRING
+          - name: customDimensions
+            data_type: ARRAY<STRUCT<`index` INT64, `value` STRING>>
+          - name: customDimensions.index
+            data_type: INT64
+          - name: customDimensions.value
+            data_type: STRING
+          - name: hits
+            data_type: >-
+              ARRAY<STRUCT<`hitNumber` INT64, `time` INT64, `hour` INT64, `minute` INT64, `isSecure` BOOLEAN,
+              `isInteraction` BOOLEAN, `isEntrance` BOOLEAN, `isExit` BOOLEAN, `referer` STRING, `page`
+              STRUCT<`pagePath` STRING, `hostname` STRING, `pageTitle` STRING, `searchKeyword` STRING,
+              `searchCategory` STRING, `pagePathLevel1` STRING, `pagePathLevel2` STRING, `pagePathLevel3`
+              STRING, `pagePathLevel4` STRING>, `transaction` STRUCT<`transactionId` STRING, `transactionRevenue`
+              INT64, `transactionTax` INT64, `transactionShipping` INT64, `affiliation` STRING, `currencyCode`
+              STRING, `localTransactionRevenue` INT64, `localTransactionTax` INT64, `localTransactionShipping`
+              INT64, `transactionCoupon` STRING>, `item` STRUCT<`transactionId` STRING, `productName`
+              STRING, `productCategory` STRING, `productSku` STRING, `itemQuantity` INT64, `itemRevenue`
+              INT64, `currencyCode` STRING, `localItemRevenue` INT64>, `contentInfo` STRUCT<`contentDescription`
+              STRING>, `appInfo` STRUCT<`name` STRING, `version` STRING, `id` STRING, `installerId` STRING,
+              `appInstallerId` STRING, `appName` STRING, `appVersion` STRING, `appId` STRING, `screenName`
+              STRING, `landingScreenName` STRING, `exitScreenName` STRING, `screenDepth` STRING>, `exceptionInfo`
+              STRUCT<`description` STRING, `isFatal` BOOLEAN, `exceptions` INT64, `fatalExceptions` INT64>,
+              `eventInfo` STRUCT<`eventCategory` STRING, `eventAction` STRING, `eventLabel` STRING, `eventValue`
+              INT64>, `product` ARRAY<STRUCT<`productSKU` STRING, `v2ProductName` STRING, `v2ProductCategory`
+              STRING, `productVariant` STRING, `productBrand` STRING, `productRevenue` INT64, `localProductRevenue`
+              INT64, `productPrice` INT64, `localProductPrice` INT64, `productQuantity` INT64, `productRefundAmount`
+              INT64, `localProductRefundAmount` INT64, `isImpression` BOOLEAN, `isClick` BOOLEAN, `customDimensions`
+              ARRAY<STRUCT<`index` INT64, `value` STRING>>, `customMetrics` ARRAY<STRUCT<`index` INT64,
+              `value` INT64>>, `productListName` STRING, `productListPosition` INT64, `productCouponCode`
+              STRING>>, `promotion` ARRAY<STRUCT<`promoId` STRING, `promoName` STRING, `promoCreative`
+              STRING, `promoPosition` STRING>>, `promotionActionInfo` STRUCT<`promoIsView` BOOLEAN, `promoIsClick`
+              BOOLEAN>, `refund` STRUCT<`refundAmount` INT64, `localRefundAmount` INT64>, `eCommerceAction`
+              STRUCT<`action_type` STRING, `step` INT64, `option` STRING>, `experiment` ARRAY<STRUCT<`experimentId`
+              STRING, `experimentVariant` STRING>>, `publisher` STRUCT<`dfpClicks` INT64, `dfpImpressions`
+              INT64, `dfpMatchedQueries` INT64, `dfpMeasurableImpressions` INT64, `dfpQueries` INT64,
+              `dfpRevenueCpm` INT64, `dfpRevenueCpc` INT64, `dfpViewableImpressions` INT64, `dfpPagesViewed`
+              INT64, `adsenseBackfillDfpClicks` INT64, `adsenseBackfillDfpImpressions` INT64, `adsenseBackfillDfpMatchedQueries`
+              INT64, `adsenseBackfillDfpMeasurableImpressions` INT64, `adsenseBackfillDfpQueries` INT64,
+              `adsenseBackfillDfpRevenueCpm` INT64, `adsenseBackfillDfpRevenueCpc` INT64, `adsenseBackfillDfpViewableImpressions`
+              INT64, `adsenseBackfillDfpPagesViewed` INT64, `adxBackfillDfpClicks` INT64, `adxBackfillDfpImpressions`
+              INT64, `adxBackfillDfpMatchedQueries` INT64, `adxBackfillDfpMeasurableImpressions` INT64,
+              `adxBackfillDfpQueries` INT64, `adxBackfillDfpRevenueCpm` INT64, `adxBackfillDfpRevenueCpc`
+              INT64, `adxBackfillDfpViewableImpressions` INT64, `adxBackfillDfpPagesViewed` INT64, `adxClicks`
+              INT64, `adxImpressions` INT64, `adxMatchedQueries` INT64, `adxMeasurableImpressions` INT64,
+              `adxQueries` INT64, `adxRevenue` INT64, `adxViewableImpressions` INT64, `adxPagesViewed`
+              INT64, `adsViewed` INT64, `adsUnitsViewed` INT64, `adsUnitsMatched` INT64, `viewableAdsViewed`
+              INT64, `measurableAdsViewed` INT64, `adsPagesViewed` INT64, `adsClicked` INT64, `adsRevenue`
+              INT64, `dfpAdGroup` STRING, `dfpAdUnits` STRING, `dfpNetworkId` STRING>, `customVariables`
+              ARRAY<STRUCT<`index` INT64, `customVarName` STRING, `customVarValue` STRING>>, `customDimensions`
+              ARRAY<STRUCT<`index` INT64, `value` STRING>>, `customMetrics` ARRAY<STRUCT<`index` INT64,
+              `value` INT64>>, `type` STRING, `social` STRUCT<`socialInteractionNetwork` STRING, `socialInteractionAction`
+              STRING, `socialInteractions` INT64, `socialInteractionTarget` STRING, `socialNetwork` STRING,
+              `uniqueSocialInteractions` INT64, `hasSocialSourceReferral` STRING, `socialInteractionNetworkAction`
+              STRING>, `latencyTracking` STRUCT<`pageLoadSample` INT64, `pageLoadTime` INT64, `pageDownloadTime`
+              INT64, `redirectionTime` INT64, `speedMetricsSample` INT64, `domainLookupTime` INT64, `serverConnectionTime`
+              INT64, `serverResponseTime` INT64, `domLatencyMetricsSample` INT64, `domInteractiveTime`
+              INT64, `domContentLoadedTime` INT64, `userTimingValue` INT64, `userTimingSample` INT64,
+              `userTimingVariable` STRING, `userTimingCategory` STRING, `userTimingLabel` STRING>, `sourcePropertyInfo`
+              STRUCT<`sourcePropertyDisplayName` STRING, `sourcePropertyTrackingId` STRING>, `contentGroup`
+              STRUCT<`contentGroup1` STRING, `contentGroup2` STRING, `contentGroup3` STRING, `contentGroup4`
+              STRING, `contentGroup5` STRING, `previousContentGroup1` STRING, `previousContentGroup2`
+              STRING, `previousContentGroup3` STRING, `previousContentGroup4` STRING, `previousContentGroup5`
+              STRING, `contentGroupUniqueViews1` INT64, `contentGroupUniqueViews2` INT64, `contentGroupUniqueViews3`
+              INT64, `contentGroupUniqueViews4` INT64, `contentGroupUniqueViews5` INT64>, `dataSource`
+              STRING, `publisher_infos` ARRAY<STRUCT<`dfpClicks` INT64, `dfpImpressions` INT64, `dfpMatchedQueries`
+              INT64, `dfpMeasurableImpressions` INT64, `dfpQueries` INT64, `dfpRevenueCpm` INT64, `dfpRevenueCpc`
+              INT64, `dfpViewableImpressions` INT64, `dfpPagesViewed` INT64, `adsenseBackfillDfpClicks`
+              INT64, `adsenseBackfillDfpImpressions` INT64, `adsenseBackfillDfpMatchedQueries` INT64,
+              `adsenseBackfillDfpMeasurableImpressions` INT64, `adsenseBackfillDfpQueries` INT64, `adsenseBackfillDfpRevenueCpm`
+              INT64, `adsenseBackfillDfpRevenueCpc` INT64, `adsenseBackfillDfpViewableImpressions` INT64,
+              `adsenseBackfillDfpPagesViewed` INT64, `adxBackfillDfpClicks` INT64, `adxBackfillDfpImpressions`
+              INT64, `adxBackfillDfpMatchedQueries` INT64, `adxBackfillDfpMeasurableImpressions` INT64,
+              `adxBackfillDfpQueries` INT64, `adxBackfillDfpRevenueCpm` INT64, `adxBackfillDfpRevenueCpc`
+              INT64, `adxBackfillDfpViewableImpressions` INT64, `adxBackfillDfpPagesViewed` INT64, `adxClicks`
+              INT64, `adxImpressions` INT64, `adxMatchedQueries` INT64, `adxMeasurableImpressions` INT64,
+              `adxQueries` INT64, `adxRevenue` INT64, `adxViewableImpressions` INT64, `adxPagesViewed`
+              INT64, `adsViewed` INT64, `adsUnitsViewed` INT64, `adsUnitsMatched` INT64, `viewableAdsViewed`
+              INT64, `measurableAdsViewed` INT64, `adsPagesViewed` INT64, `adsClicked` INT64, `adsRevenue`
+              INT64, `dfpAdGroup` STRING, `dfpAdUnits` STRING, `dfpNetworkId` STRING>>>>
+          - name: hits.hitNumber
+            data_type: INT64
+          - name: hits.time
+            data_type: INT64
+          - name: hits.hour
+            data_type: INT64
+          - name: hits.minute
+            data_type: INT64
+          - name: hits.isSecure
+            data_type: BOOLEAN
+          - name: hits.isInteraction
+            data_type: BOOLEAN
+          - name: hits.isEntrance
+            data_type: BOOLEAN
+          - name: hits.isExit
+            data_type: BOOLEAN
+          - name: hits.referer
+            data_type: STRING
+          - name: hits.page.pagePath
+            data_type: STRING
+          - name: hits.page.hostname
+            data_type: STRING
+          - name: hits.page.pageTitle
+            data_type: STRING
+          - name: hits.page.searchKeyword
+            data_type: STRING
+          - name: hits.page.searchCategory
+            data_type: STRING
+          - name: hits.page.pagePathLevel1
+            data_type: STRING
+          - name: hits.page.pagePathLevel2
+            data_type: STRING
+          - name: hits.page.pagePathLevel3
+            data_type: STRING
+          - name: hits.page.pagePathLevel4
+            data_type: STRING
+          - name: hits.transaction.transactionId
+            data_type: STRING
+          - name: hits.transaction.transactionRevenue
+            data_type: INT64
+          - name: hits.transaction.transactionTax
+            data_type: INT64
+          - name: hits.transaction.transactionShipping
+            data_type: INT64
+          - name: hits.transaction.affiliation
+            data_type: STRING
+          - name: hits.transaction.currencyCode
+            data_type: STRING
+          - name: hits.transaction.localTransactionRevenue
+            data_type: INT64
+          - name: hits.transaction.localTransactionTax
+            data_type: INT64
+          - name: hits.transaction.localTransactionShipping
+            data_type: INT64
+          - name: hits.transaction.transactionCoupon
+            data_type: STRING
+          - name: hits.item.transactionId
+            data_type: STRING
+          - name: hits.item.productName
+            data_type: STRING
+          - name: hits.item.productCategory
+            data_type: STRING
+          - name: hits.item.productSku
+            data_type: STRING
+          - name: hits.item.itemQuantity
+            data_type: INT64
+          - name: hits.item.itemRevenue
+            data_type: INT64
+          - name: hits.item.currencyCode
+            data_type: STRING
+          - name: hits.item.localItemRevenue
+            data_type: INT64
+          - name: hits.contentInfo.contentDescription
+            data_type: STRING
+          - name: hits.appInfo.name
+            data_type: STRING
+          - name: hits.appInfo.version
+            data_type: STRING
+          - name: hits.appInfo.id
+            data_type: STRING
+          - name: hits.appInfo.installerId
+            data_type: STRING
+          - name: hits.appInfo.appInstallerId
+            data_type: STRING
+          - name: hits.appInfo.appName
+            data_type: STRING
+          - name: hits.appInfo.appVersion
+            data_type: STRING
+          - name: hits.appInfo.appId
+            data_type: STRING
+          - name: hits.appInfo.screenName
+            data_type: STRING
+          - name: hits.appInfo.landingScreenName
+            data_type: STRING
+          - name: hits.appInfo.exitScreenName
+            data_type: STRING
+          - name: hits.appInfo.screenDepth
+            data_type: STRING
+          - name: hits.exceptionInfo.description
+            data_type: STRING
+          - name: hits.exceptionInfo.isFatal
+            data_type: BOOLEAN
+          - name: hits.exceptionInfo.exceptions
+            data_type: INT64
+          - name: hits.exceptionInfo.fatalExceptions
+            data_type: INT64
+          - name: hits.eventInfo.eventCategory
+            data_type: STRING
+          - name: hits.eventInfo.eventAction
+            data_type: STRING
+          - name: hits.eventInfo.eventLabel
+            data_type: STRING
+          - name: hits.eventInfo.eventValue
+            data_type: INT64
+          - name: hits.product.productSKU
+            data_type: STRING
+          - name: hits.product.v2ProductName
+            data_type: STRING
+          - name: hits.product.v2ProductCategory
+            data_type: STRING
+          - name: hits.product.productVariant
+            data_type: STRING
+          - name: hits.product.productBrand
+            data_type: STRING
+          - name: hits.product.productRevenue
+            data_type: INT64
+          - name: hits.product.localProductRevenue
+            data_type: INT64
+          - name: hits.product.productPrice
+            data_type: INT64
+          - name: hits.product.localProductPrice
+            data_type: INT64
+          - name: hits.product.productQuantity
+            data_type: INT64
+          - name: hits.product.productRefundAmount
+            data_type: INT64
+          - name: hits.product.localProductRefundAmount
+            data_type: INT64
+          - name: hits.product.isImpression
+            data_type: BOOLEAN
+          - name: hits.product.isClick
+            data_type: BOOLEAN
+          - name: hits.product.customDimensions.index
+            data_type: INT64
+          - name: hits.product.customDimensions.value
+            data_type: STRING
+          - name: hits.product.customMetrics.index
+            data_type: INT64
+          - name: hits.product.customMetrics.value
+            data_type: INT64
+          - name: hits.product.productListName
+            data_type: STRING
+          - name: hits.product.productListPosition
+            data_type: INT64
+          - name: hits.product.productCouponCode
+            data_type: STRING
+          - name: hits.promotion.promoId
+            data_type: STRING
+          - name: hits.promotion.promoName
+            data_type: STRING
+          - name: hits.promotion.promoCreative
+            data_type: STRING
+          - name: hits.promotion.promoPosition
+            data_type: STRING
+          - name: hits.promotionActionInfo.promoIsView
+            data_type: BOOLEAN
+          - name: hits.promotionActionInfo.promoIsClick
+            data_type: BOOLEAN
+          - name: hits.refund.refundAmount
+            data_type: INT64
+          - name: hits.refund.localRefundAmount
+            data_type: INT64
+          - name: hits.eCommerceAction.action_type
+            data_type: STRING
+          - name: hits.eCommerceAction.step
+            data_type: INT64
+          - name: hits.eCommerceAction.option
+            data_type: STRING
+          - name: hits.experiment.experimentId
+            data_type: STRING
+          - name: hits.experiment.experimentVariant
+            data_type: STRING
+          - name: hits.publisher.dfpClicks
+            data_type: INT64
+          - name: hits.publisher.dfpImpressions
+            data_type: INT64
+          - name: hits.publisher.dfpMatchedQueries
+            data_type: INT64
+          - name: hits.publisher.dfpMeasurableImpressions
+            data_type: INT64
+          - name: hits.publisher.dfpQueries
+            data_type: INT64
+          - name: hits.publisher.dfpRevenueCpm
+            data_type: INT64
+          - name: hits.publisher.dfpRevenueCpc
+            data_type: INT64
+          - name: hits.publisher.dfpViewableImpressions
+            data_type: INT64
+          - name: hits.publisher.dfpPagesViewed
+            data_type: INT64
+          - name: hits.publisher.adsenseBackfillDfpClicks
+            data_type: INT64
+          - name: hits.publisher.adsenseBackfillDfpImpressions
+            data_type: INT64
+          - name: hits.publisher.adsenseBackfillDfpMatchedQueries
+            data_type: INT64
+          - name: hits.publisher.adsenseBackfillDfpMeasurableImpressions
+            data_type: INT64
+          - name: hits.publisher.adsenseBackfillDfpQueries
+            data_type: INT64
+          - name: hits.publisher.adsenseBackfillDfpRevenueCpm
+            data_type: INT64
+          - name: hits.publisher.adsenseBackfillDfpRevenueCpc
+            data_type: INT64
+          - name: hits.publisher.adsenseBackfillDfpViewableImpressions
+            data_type: INT64
+          - name: hits.publisher.adsenseBackfillDfpPagesViewed
+            data_type: INT64
+          - name: hits.publisher.adxBackfillDfpClicks
+            data_type: INT64
+          - name: hits.publisher.adxBackfillDfpImpressions
+            data_type: INT64
+          - name: hits.publisher.adxBackfillDfpMatchedQueries
+            data_type: INT64
+          - name: hits.publisher.adxBackfillDfpMeasurableImpressions
+            data_type: INT64
+          - name: hits.publisher.adxBackfillDfpQueries
+            data_type: INT64
+          - name: hits.publisher.adxBackfillDfpRevenueCpm
+            data_type: INT64
+          - name: hits.publisher.adxBackfillDfpRevenueCpc
+            data_type: INT64
+          - name: hits.publisher.adxBackfillDfpViewableImpressions
+            data_type: INT64
+          - name: hits.publisher.adxBackfillDfpPagesViewed
+            data_type: INT64
+          - name: hits.publisher.adxClicks
+            data_type: INT64
+          - name: hits.publisher.adxImpressions
+            data_type: INT64
+          - name: hits.publisher.adxMatchedQueries
+            data_type: INT64
+          - name: hits.publisher.adxMeasurableImpressions
+            data_type: INT64
+          - name: hits.publisher.adxQueries
+            data_type: INT64
+          - name: hits.publisher.adxRevenue
+            data_type: INT64
+          - name: hits.publisher.adxViewableImpressions
+            data_type: INT64
+          - name: hits.publisher.adxPagesViewed
+            data_type: INT64
+          - name: hits.publisher.adsViewed
+            data_type: INT64
+          - name: hits.publisher.adsUnitsViewed
+            data_type: INT64
+          - name: hits.publisher.adsUnitsMatched
+            data_type: INT64
+          - name: hits.publisher.viewableAdsViewed
+            data_type: INT64
+          - name: hits.publisher.measurableAdsViewed
+            data_type: INT64
+          - name: hits.publisher.adsPagesViewed
+            data_type: INT64
+          - name: hits.publisher.adsClicked
+            data_type: INT64
+          - name: hits.publisher.adsRevenue
+            data_type: INT64
+          - name: hits.publisher.dfpAdGroup
+            data_type: STRING
+          - name: hits.publisher.dfpAdUnits
+            data_type: STRING
+          - name: hits.publisher.dfpNetworkId
+            data_type: STRING
+          - name: hits.customVariables.index
+            data_type: INT64
+          - name: hits.customVariables.customVarName
+            data_type: STRING
+          - name: hits.customVariables.customVarValue
+            data_type: STRING
+          - name: hits.customDimensions.index
+            data_type: INT64
+          - name: hits.customDimensions.value
+            data_type: STRING
+          - name: hits.customMetrics.index
+            data_type: INT64
+          - name: hits.customMetrics.value
+            data_type: INT64
+          - name: hits.type
+            data_type: STRING
+          - name: hits.social.socialInteractionNetwork
+            data_type: STRING
+          - name: hits.social.socialInteractionAction
+            data_type: STRING
+          - name: hits.social.socialInteractions
+            data_type: INT64
+          - name: hits.social.socialInteractionTarget
+            data_type: STRING
+          - name: hits.social.socialNetwork
+            data_type: STRING
+          - name: hits.social.uniqueSocialInteractions
+            data_type: INT64
+          - name: hits.social.hasSocialSourceReferral
+            data_type: STRING
+          - name: hits.social.socialInteractionNetworkAction
+            data_type: STRING
+          - name: hits.latencyTracking.pageLoadSample
+            data_type: INT64
+          - name: hits.latencyTracking.pageLoadTime
+            data_type: INT64
+          - name: hits.latencyTracking.pageDownloadTime
+            data_type: INT64
+          - name: hits.latencyTracking.redirectionTime
+            data_type: INT64
+          - name: hits.latencyTracking.speedMetricsSample
+            data_type: INT64
+          - name: hits.latencyTracking.domainLookupTime
+            data_type: INT64
+          - name: hits.latencyTracking.serverConnectionTime
+            data_type: INT64
+          - name: hits.latencyTracking.serverResponseTime
+            data_type: INT64
+          - name: hits.latencyTracking.domLatencyMetricsSample
+            data_type: INT64
+          - name: hits.latencyTracking.domInteractiveTime
+            data_type: INT64
+          - name: hits.latencyTracking.domContentLoadedTime
+            data_type: INT64
+          - name: hits.latencyTracking.userTimingValue
+            data_type: INT64
+          - name: hits.latencyTracking.userTimingSample
+            data_type: INT64
+          - name: hits.latencyTracking.userTimingVariable
+            data_type: STRING
+          - name: hits.latencyTracking.userTimingCategory
+            data_type: STRING
+          - name: hits.latencyTracking.userTimingLabel
+            data_type: STRING
+          - name: hits.sourcePropertyInfo.sourcePropertyDisplayName
+            data_type: STRING
+          - name: hits.sourcePropertyInfo.sourcePropertyTrackingId
+            data_type: STRING
+          - name: hits.contentGroup.contentGroup1
+            data_type: STRING
+          - name: hits.contentGroup.contentGroup2
+            data_type: STRING
+          - name: hits.contentGroup.contentGroup3
+            data_type: STRING
+          - name: hits.contentGroup.contentGroup4
+            data_type: STRING
+          - name: hits.contentGroup.contentGroup5
+            data_type: STRING
+          - name: hits.contentGroup.previousContentGroup1
+            data_type: STRING
+          - name: hits.contentGroup.previousContentGroup2
+            data_type: STRING
+          - name: hits.contentGroup.previousContentGroup3
+            data_type: STRING
+          - name: hits.contentGroup.previousContentGroup4
+            data_type: STRING
+          - name: hits.contentGroup.previousContentGroup5
+            data_type: STRING
+          - name: hits.contentGroup.contentGroupUniqueViews1
+            data_type: INT64
+          - name: hits.contentGroup.contentGroupUniqueViews2
+            data_type: INT64
+          - name: hits.contentGroup.contentGroupUniqueViews3
+            data_type: INT64
+          - name: hits.contentGroup.contentGroupUniqueViews4
+            data_type: INT64
+          - name: hits.contentGroup.contentGroupUniqueViews5
+            data_type: INT64
+          - name: hits.dataSource
+            data_type: STRING
+          - name: hits.publisher_infos.dfpClicks
+            data_type: INT64
+          - name: hits.publisher_infos.dfpImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.dfpMatchedQueries
+            data_type: INT64
+          - name: hits.publisher_infos.dfpMeasurableImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.dfpQueries
+            data_type: INT64
+          - name: hits.publisher_infos.dfpRevenueCpm
+            data_type: INT64
+          - name: hits.publisher_infos.dfpRevenueCpc
+            data_type: INT64
+          - name: hits.publisher_infos.dfpViewableImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.dfpPagesViewed
+            data_type: INT64
+          - name: hits.publisher_infos.adsenseBackfillDfpClicks
+            data_type: INT64
+          - name: hits.publisher_infos.adsenseBackfillDfpImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.adsenseBackfillDfpMatchedQueries
+            data_type: INT64
+          - name: hits.publisher_infos.adsenseBackfillDfpMeasurableImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.adsenseBackfillDfpQueries
+            data_type: INT64
+          - name: hits.publisher_infos.adsenseBackfillDfpRevenueCpm
+            data_type: INT64
+          - name: hits.publisher_infos.adsenseBackfillDfpRevenueCpc
+            data_type: INT64
+          - name: hits.publisher_infos.adsenseBackfillDfpViewableImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.adsenseBackfillDfpPagesViewed
+            data_type: INT64
+          - name: hits.publisher_infos.adxBackfillDfpClicks
+            data_type: INT64
+          - name: hits.publisher_infos.adxBackfillDfpImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.adxBackfillDfpMatchedQueries
+            data_type: INT64
+          - name: hits.publisher_infos.adxBackfillDfpMeasurableImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.adxBackfillDfpQueries
+            data_type: INT64
+          - name: hits.publisher_infos.adxBackfillDfpRevenueCpm
+            data_type: INT64
+          - name: hits.publisher_infos.adxBackfillDfpRevenueCpc
+            data_type: INT64
+          - name: hits.publisher_infos.adxBackfillDfpViewableImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.adxBackfillDfpPagesViewed
+            data_type: INT64
+          - name: hits.publisher_infos.adxClicks
+            data_type: INT64
+          - name: hits.publisher_infos.adxImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.adxMatchedQueries
+            data_type: INT64
+          - name: hits.publisher_infos.adxMeasurableImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.adxQueries
+            data_type: INT64
+          - name: hits.publisher_infos.adxRevenue
+            data_type: INT64
+          - name: hits.publisher_infos.adxViewableImpressions
+            data_type: INT64
+          - name: hits.publisher_infos.adxPagesViewed
+            data_type: INT64
+          - name: hits.publisher_infos.adsViewed
+            data_type: INT64
+          - name: hits.publisher_infos.adsUnitsViewed
+            data_type: INT64
+          - name: hits.publisher_infos.adsUnitsMatched
+            data_type: INT64
+          - name: hits.publisher_infos.viewableAdsViewed
+            data_type: INT64
+          - name: hits.publisher_infos.measurableAdsViewed
+            data_type: INT64
+          - name: hits.publisher_infos.adsPagesViewed
+            data_type: INT64
+          - name: hits.publisher_infos.adsClicked
+            data_type: INT64
+          - name: hits.publisher_infos.adsRevenue
+            data_type: INT64
+          - name: hits.publisher_infos.dfpAdGroup
+            data_type: STRING
+          - name: hits.publisher_infos.dfpAdUnits
+            data_type: STRING
+          - name: hits.publisher_infos.dfpNetworkId
+            data_type: STRING
+          - name: fullVisitorId
+            data_type: STRING
+          - name: userId
+            data_type: STRING
+          - name: clientId
+            data_type: STRING
+          - name: channelGrouping
+            data_type: STRING
+          - name: socialEngagementType
+            data_type: STRING
