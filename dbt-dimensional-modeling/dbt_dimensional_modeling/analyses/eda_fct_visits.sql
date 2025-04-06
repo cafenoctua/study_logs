@@ -1,5 +1,6 @@
-select *
+select
+  count(*)
 from
-  {{ ref('fct_visits') }}
-where
-  user_sk is not null
+  {{ ref('fct_visits_sk_int') }}
+{# where
+  user_sk is not null #}

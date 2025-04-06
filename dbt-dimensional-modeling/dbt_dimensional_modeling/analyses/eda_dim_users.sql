@@ -4,7 +4,7 @@ select
   {# * #}
   count(*)
 from
-  {{ ref('dim_users') }}
+  {{ ref('dim_users_sk_int') }}
 {# where
   date(valid_from) <= "2016-08-03"  #}
 {# where

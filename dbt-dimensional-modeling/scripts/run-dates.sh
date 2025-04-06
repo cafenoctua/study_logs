@@ -1,7 +1,7 @@
 #!/bin/bash
 
 start_date=20160801
-end_date=20160802
+end_date=20160831
 
 current_date=$start_date
 

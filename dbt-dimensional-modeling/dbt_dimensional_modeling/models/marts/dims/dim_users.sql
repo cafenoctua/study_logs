@@ -9,7 +9,16 @@ import_stg_ga as (
     device.operatingSystem as os,
     device.deviceCategory as device_category,
     device.isMobile as is_mobile,
-    {{ generate_hash_value(['geoNetwork.continent', 'geoNetwork.subContinent', 'geoNetwork.country ', 'device.browser', 'device.operatingSystem', 'device.deviceCategory', 'device.isMobile']) }} as hash_value,
+    
+    {{ generate_hash_value([
+      'geoNetwork.continent',
+      'geoNetwork.subContinent',
+      'geoNetwork.country ',
+      'device.browser',
+      'device.operatingSystem',
+      'device.deviceCategory',
+      'device.isMobile'
+    ]) }} as hash_value,
     access_timestamp
   from {{ ref('stg_ga_sample') }} 
 ),
