@@ -1,0 +1,32 @@
+version: 2
+models:
+  - name: dim_customers
+    config:
+      materialized: incremental
+      incremental_stragegy: merge
+      unique_key: customer_sk
+    columns:
+      - name: customer_sk
+        data_type: INT64
+      - name: user_id
+        data_type: INT64
+      - name: first_name
+        data_type: STRING
+      - name: last_name
+        data_type: STRING
+      - name: order_id
+        data_type: INT64
+      - name: status
+        data_type: STRING
+      - name: payment_method
+        data_type: STRING
+      - name: amount
+        data_type: INT64
+      - name: hash_value
+        data_type: STRING
+      - name: valid_from
+        data_type: TIMESTAMP
+      - name: valid_to
+        data_type: TIMESTAMP
+      - name: is_current
+        data_type: BOOLEAN

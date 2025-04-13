@@ -1,12 +1,3 @@
-datavault_test:
-  outputs:
-    dev:
-      dataset: dbt_datamodeling
-      method: oauth
-      project: sweepsump
-      threads: 4
-      type: bigquery
-  target: dev
 dbt_dimensional_modeling:
   outputs:
     dev:

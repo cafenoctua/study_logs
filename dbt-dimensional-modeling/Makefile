@@ -13,7 +13,19 @@ genpub:
 
 osm:
 	cd dbt_dimensional_modeling \
-	&& dbt-osmosis yaml refactor --profiles-dir ../profiles
+	&& uv run dbt-osmosis yaml refactor --profiles-dir ../profiles
 
 run-dates:
 	sh ./scripts/run-dates.sh
+
+frun:
+	dbt run -fs +dim_customers --project-dir dbt_dimensional_modeling/ --vars '{date: 2018-01-01, first_run: true}'
+
+run:
+	dbt run -s +dim_customers --project-dir dbt_dimensional_modeling/ --vars '{date: 2018-01-01, first_run: false, retry: true}'
+
+run-stg:
+	dbt run -s stg_jaffle_shop_payment --project-dir dbt_dimensional_modeling/ --vars '{date: 2018-01-01, first_run: false, retry: true}'
+
+compile:
+	dbt compile -s dim_customers --project-dir dbt_dimensional_modeling/ --vars '{date: 2018-01-01, first_run: false, retry: true}'

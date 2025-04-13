@@ -1,0 +1,20 @@
+version: 2
+models:
+  - name: stg_jaffle_shop_payment
+    columns:
+      - name: order_date
+        data_type: DATE
+      - name: user_id
+        data_type: INT64
+      - name: first_name
+        data_type: STRING
+      - name: last_name
+        data_type: STRING
+      - name: order_id
+        data_type: INT64
+      - name: status
+        data_type: STRING
+      - name: payment_method
+        data_type: STRING
+      - name: amount
+        data_type: INT64
