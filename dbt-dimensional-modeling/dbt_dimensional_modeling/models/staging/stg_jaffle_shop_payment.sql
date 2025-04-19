@@ -57,7 +57,7 @@ select
   date("2018-02-09") as order_date,
   1 as user_id,
   'Michael' as fist_name,
-  'W.' as last_name,
+  'M.' as last_name,
   1 as order_id,
   cast(null as string) as status,
   cast(null as string) as payment_method,
