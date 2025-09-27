@@ -1,0 +1,31 @@
+Installing dbt project and profile setup
+Info Created .vscode/extensions.json with dbt extension recommendation
+Success Project created successfully!
+Info Project name: time_calendar_dim
+Info Project directory: time_calendar_dim
+Info Setting up your profile...
+Info Creating new profile...
+Found dbt_cloud.yml configuration
+Found active project: Untitled Project (ID: 70471823510278)
+Failed to fetch cloud config: Failed to fetch user credentials: error in response: status code 401 Unauthorized
+No cloud config found for this adapter/project
+Success Profile written to /Users/watanabeburuno/.dbt/profiles.yml
+Validating profile inputs, adapters, and connection
+
+dbt-fusion 2.0.0-preview.25
+   Loading ~/.dbt/profiles.yml
+ Debugging profile: dev
+ Debugging dbt version: 2.0.0-preview.25
+ Debugging platform: macos aarch64 (unix)
+ Debugging adapter type: bigquery (remote)
+ Debugging dependencies:
+  git: OK
+ Debugging connection:
+  "database": "sweepsump",
+  "schema": "time_calendar_dim",
+  "method": "oauth",
+  "location": "us-central1",
+  "dataproc_batch": null
+ Debugging connection test: OK
+  Debugged All checks passed!
+  Finished 'init' target 'dev' in 3s 156ms

@@ -1,0 +1,1 @@
+SELECT * FROM `bigquery-public-data.baseball.schedules` LIMIT 50
