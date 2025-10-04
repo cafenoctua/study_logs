@@ -1,0 +1,1 @@
+SELECT * FROM `bigquery-public-data.baseball.games_wide` LIMIT 50

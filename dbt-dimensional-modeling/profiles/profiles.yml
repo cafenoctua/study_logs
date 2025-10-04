@@ -11,4 +11,3 @@ dbt_dimensional_modeling:
       threads: 4
       type: bigquery
   target: dev
-  
