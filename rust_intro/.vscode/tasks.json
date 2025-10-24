@@ -1,0 +1,51 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+        "label": "echo",
+        "type": "shell",
+        "command": "echo Hello",
+        "problemMatcher": [],
+        "group": {
+            "kind": "build",
+            "isDefault": true
+        }
+    },
+    {
+      "label": "Run with arguments",
+      "type": "shell",
+      "command": "echo",
+      "args": [
+        "Hello, ${input:userName}!"
+      ],
+      "problemMatcher": []
+    },
+    {
+        "label": "cargo new project",
+        "type": "shell",
+        "options": {
+            "cwd": "${workspaceFolder}/projects"
+        },
+        "command": "cargo new ${input:projectName}",
+        // "args": [
+        //     "cargo new ${input:projectName}"
+        // ],
+        "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "userName",
+      "type": "promptString",
+      "description": "Enter your name:",
+      "default": "World"
+    },
+    {
+        "id": "projectName",
+        "type": "promptString",
+        "description": "Enter project name:",
+    }
+  ]
+}
