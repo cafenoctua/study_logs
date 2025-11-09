@@ -1,0 +1,22 @@
+[package]
+name = "cargo_detail"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+authors = ["name <name@example.com"]
+description = "Example description"
+
+[dependencies]
+
+[workspace]
+
+members = [
+    "add-one",
+    "adder",
+]
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
