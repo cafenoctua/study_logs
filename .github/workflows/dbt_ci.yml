@@ -1,0 +1,43 @@
+name: dbt CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dbt/**'
+  pull_request:
+    paths:
+      - 'dbt/**'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  dbt-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dbt-core and dbt-bigquery
+        run: |
+          pip install --upgrade pip
+          pip install dbt-core dbt-bigquery
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIP_DBT }}
+          service_account: ${{ secrets.WIP_SA_DBT }}
+
+      - name: Verify dbt installation
+        run: dbt --version
