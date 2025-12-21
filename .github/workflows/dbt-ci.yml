@@ -65,7 +65,7 @@ on:
 
 env:
   DBT_PROFILES_DIR: ${{ github.workspace }}/dbt-ci-test/dbt_ci_test
-  DBT_BQ_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+  DBT_BQ_PROJECT: ${{ secrets.GCP_PROJECT_ID || 'sweepsump' }}
   DBT_BQ_DATASET: dbt_ci_${{ github.event.inputs.dataset_suffix || format('pr{0}', github.event.pull_request.number) }}
   DBT_BQ_LOCATION: US
 
@@ -288,53 +288,26 @@ jobs:
         working-directory: dbt-ci-test/dbt_ci_test
         run: |
           set +e
-          MAX_RETRIES=3
-          RETRY_DELAY=30
+          echo "Running: dbt build --selector ci_slim --state ./prod_state"
 
-          for i in $(seq 1 $MAX_RETRIES); do
-            echo "=== Attempt $i of $MAX_RETRIES ==="
-            echo "Running: dbt build --selector ci_slim --state ./prod_state"
+          dbt build \
+            --selector ci_slim \
+            --state ./prod_state \
+            --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
 
-            dbt build \
-              --selector ci_slim \
-              --state ./prod_state \
-              --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
-            EXIT_CODE=${PIPESTATUS[0]}
-
-            # state:modifiedで変更がない場合は成功として扱う
-            if grep -q "does not match any enabled nodes" dbt_build_output.txt; then
-              echo "No modified models found - skipping build"
-              echo "## 🔨 dbt Build Results" > build_report.md
-              echo "" >> build_report.md
-              echo "ℹ️ No modified models detected. Nothing to build." >> build_report.md
-              echo "exit_code=0" >> $GITHUB_OUTPUT
-              echo "no_changes=true" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-
-            # 成功した場合は終了
-            if [ $EXIT_CODE -eq 0 ]; then
-              echo "✅ dbt build completed successfully"
-              break
-            fi
-
-            # Database Errorをチェックしてリトライ
-            if grep -q "Database Error" dbt_build_output.txt || grep -q "Request couldn't be served" dbt_build_output.txt; then
-              echo "⚠️ BigQuery temporary error detected"
-              if [ $i -lt $MAX_RETRIES ]; then
-                echo "Waiting ${RETRY_DELAY} seconds before retry..."
-                sleep $RETRY_DELAY
-                RETRY_DELAY=$((RETRY_DELAY + 30))
-              fi
-            else
-              # Database Error以外のエラーはリトライしない
-              echo "❌ Non-retryable error occurred"
-              break
-            fi
-          done
-
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          echo "no_changes=false" >> $GITHUB_OUTPUT
+          # state:modifiedで変更がない場合は成功として扱う
+          if grep -q "does not match any enabled nodes" dbt_build_output.txt; then
+            echo "No modified models found - skipping build"
+            echo "## 🔨 dbt Build Results" > build_report.md
+            echo "" >> build_report.md
+            echo "ℹ️ No modified models detected. Nothing to build." >> build_report.md
+            echo "exit_code=0" >> $GITHUB_OUTPUT
+            echo "no_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+            echo "no_changes=false" >> $GITHUB_OUTPUT
+          fi
           exit 0
 
       # フルビルド（prod manifestがない場合、またはfull_build指定時）
@@ -344,38 +317,12 @@ jobs:
         working-directory: dbt-ci-test/dbt_ci_test
         run: |
           set +e
-          MAX_RETRIES=3
-          RETRY_DELAY=30
+          echo "Running: dbt build (full)"
 
-          for i in $(seq 1 $MAX_RETRIES); do
-            echo "=== Attempt $i of $MAX_RETRIES ==="
-            echo "Running: dbt build (full)"
-
-            dbt build \
-              --exclude package:dbt_project_evaluator \
-              --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
-            EXIT_CODE=${PIPESTATUS[0]}
-
-            # 成功した場合は終了
-            if [ $EXIT_CODE -eq 0 ]; then
-              echo "✅ dbt build completed successfully"
-              break
-            fi
-
-            # Database Errorをチェックしてリトライ
-            if grep -q "Database Error" dbt_build_output.txt || grep -q "Request couldn't be served" dbt_build_output.txt; then
-              echo "⚠️ BigQuery temporary error detected"
-              if [ $i -lt $MAX_RETRIES ]; then
-                echo "Waiting ${RETRY_DELAY} seconds before retry..."
-                sleep $RETRY_DELAY
-                RETRY_DELAY=$((RETRY_DELAY + 30))
-              fi
-            else
-              # Database Error以外のエラーはリトライしない
-              echo "❌ Non-retryable error occurred"
-              break
-            fi
-          done
+          dbt build \
+            --exclude package:dbt_project_evaluator \
+            --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
 
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           echo "no_changes=false" >> $GITHUB_OUTPUT
@@ -589,15 +536,27 @@ jobs:
       - name: Parse lint results
         id: parse-lint
         run: |
+          echo "Current directory: $(pwd)"
+          echo "sdf_lint_output.txt contents:"
+          cat sdf_lint_output.txt || echo "File not found"
+
           python3 << 'EOF'
           import re
+          import os
 
-          with open('sdf_lint_output.txt', 'r') as f:
-              output = f.read()
+          # ファイルの存在確認
+          if not os.path.exists('sdf_lint_output.txt'):
+              print("Warning: sdf_lint_output.txt not found")
+              output = ""
+          else:
+              with open('sdf_lint_output.txt', 'r') as f:
+                  output = f.read()
 
           # エラー/警告を抽出
-          errors = re.findall(r'error:.*', output)
-          warnings = re.findall(r'warning:.*', output)
+          errors = re.findall(r'error:.*', output, re.IGNORECASE)
+          warnings = re.findall(r'warning:.*', output, re.IGNORECASE)
+
+          print(f"Found {len(errors)} errors and {len(warnings)} warnings")
 
           with open('lint_report.md', 'w') as f:
               f.write("## 🔍 SDF Lint Results\n\n")
@@ -621,8 +580,11 @@ jobs:
                           f.write(f"{w}\n")
                       f.write("```\n\n</details>\n")
 
-          print("Lint report generated")
+          print(f"Lint report generated at: {os.path.abspath('lint_report.md')}")
           EOF
+
+          echo "Generated lint_report.md:"
+          cat lint_report.md
 
       - name: Post lint results
         if: github.event_name == 'pull_request'
@@ -630,10 +592,18 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const report = fs.readFileSync('dbt-ci-test/dbt_ci_test/lint_report.md', 'utf8');
+            const path = require('path');
+            const workspace = process.env.GITHUB_WORKSPACE;
+            const reportPath = path.join(workspace, 'dbt-ci-test/dbt_ci_test/lint_report.md');
 
-            let body = report;
-            body += "\n\n---\n*Generated by dbt CI - SDF Lint*";
+            let body;
+            try {
+              const report = fs.readFileSync(reportPath, 'utf8');
+              body = report + "\n\n---\n*Generated by dbt CI - SDF Lint*";
+            } catch (error) {
+              console.log(`Report file not found at ${reportPath}, using fallback`);
+              body = "## 🔍 SDF Lint Results\n\n⚠️ Lint report not generated.\n\n---\n*Generated by dbt CI - SDF Lint*";
+            }
 
             // 既存コメントを検索
             const { data: comments } = await github.rest.issues.listComments({
