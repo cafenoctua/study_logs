@@ -1,0 +1,72 @@
+version: 2
+
+models:
+  - name: dim_users
+    description: |
+      ユーザーディメンションテーブル。
+      ユーザーID、初回アクセス日時を管理。
+    columns:
+      - name: user_pseudo_id
+        description: 匿名ユーザーID（主キー）
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: ユーザーID（ログイン時に設定）
+      - name: first_touch_timestamp
+        description: ユーザー初回アクセスタイムスタンプ
+      - name: first_access_date
+        description: ユーザー初回アクセス日
+
+  - name: dim_devices
+    description: |
+      デバイスディメンションテーブル。
+      デバイスカテゴリ、OS、ブラウザ情報を管理。
+    columns:
+      - name: device_key
+        description: デバイスサロゲートキー
+        data_tests:
+          - unique
+          - not_null
+      - name: device_category
+        description: デバイスカテゴリ（desktop/mobile/tablet）
+      - name: device_os
+        description: OS名
+      - name: device_browser
+        description: ブラウザ名
+
+  - name: dim_geo
+    description: |
+      地理ディメンションテーブル。
+      アクセス元の地域情報を管理。
+    columns:
+      - name: geo_key
+        description: 地理サロゲートキー
+        data_tests:
+          - unique
+          - not_null
+      - name: geo_continent
+        description: 大陸
+      - name: geo_country
+        description: 国
+      - name: geo_region
+        description: 地域/州
+      - name: geo_city
+        description: 都市
+
+  - name: dim_apps
+    description: |
+      アプリケーションディメンションテーブル。
+      アプリID、バージョン情報を管理。
+    columns:
+      - name: app_key
+        description: アプリサロゲートキー
+        data_tests:
+          - unique
+          - not_null
+      - name: app_id
+        description: アプリID
+      - name: app_version
+        description: アプリバージョン
+      - name: firebase_app_id
+        description: Firebase App ID

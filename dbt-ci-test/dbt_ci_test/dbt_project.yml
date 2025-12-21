@@ -1,0 +1,115 @@
+
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: 'dbt_ci_test'
+version: '1.0.0'
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'dbt_ci_test'
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:         # directories to be removed by `dbt clean`
+  - "target"
+  - "dbt_packages"
+
+# =============================================================================
+# dbt_project_evaluator 設定
+# =============================================================================
+# 参考: https://dbt-labs.github.io/dbt-project-evaluator/latest/ci-check/
+
+# テストの重大度を環境変数で制御
+# - ローカル開発: warn（デフォルト）
+# - CI環境: error（DBT_PROJECT_EVALUATOR_SEVERITY=error を設定）
+data_tests:
+  dbt_project_evaluator:
+    +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
+
+# =============================================================================
+# モデル設定
+# =============================================================================
+models:
+  # プロジェクト固有の設定
+  dbt_ci_test:
+    # exampleディレクトリを無効化
+    example:
+      +enabled: false
+
+    # stagingレイヤー: ソースデータの正規化
+    staging:
+      +materialized: view
+      ga4:
+        +tags: ['ga4', 'staging']
+
+    # martsレイヤー: ビジネスロジック
+    marts:
+      +materialized: table
+      dim:
+        +tags: ['dimension']
+      fct:
+        +tags: ['fact']
+
+  # dbt_project_evaluator パッケージ設定
+  dbt_project_evaluator:
+    +schema: dbt_project_evaluator
+
+# マクロディスパッチ設定（BigQuery/Databricks/Spark/Redshift対応）
+dispatch:
+  - macro_namespace: dbt
+    search_order: ['dbt_project_evaluator', 'dbt']
+
+# =============================================================================
+# dbt_project_evaluator 変数設定
+# =============================================================================
+vars:
+  dbt_project_evaluator:
+    # ------------------------------------------------------------------
+    # 除外設定
+    # ------------------------------------------------------------------
+    # 特定パッケージを評価対象から除外
+    # exclude_packages: ['external_package']
+
+    # 特定モデルを評価対象から除外
+    # models_excluded: ['legacy_model']
+
+    # ------------------------------------------------------------------
+    # カバレッジ目標値
+    # ------------------------------------------------------------------
+    # ドキュメントカバレッジ目標（0-100, デフォルト: 100）
+    documentation_coverage_target: 100
+
+    # テストカバレッジ目標（0-100, デフォルト: 100）
+    test_coverage_target: 100
+
+    # ------------------------------------------------------------------
+    # 命名規則のカスタマイズ
+    # ------------------------------------------------------------------
+    # model_typesは文字列のリストで指定
+    # 各タイプの設定は <model_type>_folder_name, <model_type>_prefixes で定義
+    # 参考: https://dbt-labs.github.io/dbt-project-evaluator/0.8/rules/structure/
+    model_types: ['staging', 'intermediate', 'marts', 'other']
+
+    # staging設定
+    staging_folder_name: 'staging'
+    staging_prefixes: ['stg_']
+
+    # intermediate設定
+    intermediate_folder_name: 'intermediate'
+    intermediate_prefixes: ['int_']
+
+    # marts設定
+    marts_folder_name: 'marts'
+    marts_prefixes: ['fct_', 'dim_']
+
+    # other設定（プレフィックスなし）
+    other_folder_name: 'other'
+    other_prefixes: ['']

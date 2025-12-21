@@ -1,0 +1,22 @@
+# dbt
+target/
+dbt_packages/
+logs/
+**/*.log
+
+# SDF
+/sdftarget
+dbt_internal_packages/
+
+# prod_state（manifest.jsonはコミットする）
+# prod_state/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# direnv（環境変数に機密情報が含まれる可能性があるため）
+.envrc

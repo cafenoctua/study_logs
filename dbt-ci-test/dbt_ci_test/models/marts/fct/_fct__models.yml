@@ -1,0 +1,82 @@
+version: 2
+
+models:
+  - name: fct_daily_engagement
+    description: |
+      日次エンゲージメント時間ファクトテーブル。
+      ユーザーごとの各日の合計利用時間を集計。
+    columns:
+      - name: event_date
+        description: イベント発生日
+        data_tests:
+          - not_null
+      - name: user_pseudo_id
+        description: 匿名ユーザーID
+        data_tests:
+          - not_null
+      - name: total_engagement_time_msec
+        description: 合計エンゲージメント時間（ミリ秒）
+      - name: total_engagement_time_sec
+        description: 合計エンゲージメント時間（秒）
+      - name: total_engagement_time_min
+        description: 合計エンゲージメント時間（分）
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - event_date
+            - user_pseudo_id
+
+  - name: fct_daily_access
+    description: |
+      日次アクセス数ファクトテーブル。
+      ユーザーごとの各日の合計アクセス数を集計。
+    columns:
+      - name: event_date
+        description: イベント発生日
+        data_tests:
+          - not_null
+      - name: user_pseudo_id
+        description: 匿名ユーザーID
+        data_tests:
+          - not_null
+      - name: total_events
+        description: 合計イベント数
+      - name: total_sessions
+        description: 合計セッション数
+      - name: unique_pages_viewed
+        description: ユニークページ閲覧数
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - event_date
+            - user_pseudo_id
+
+  - name: fct_user_ltv
+    description: |
+      ユーザーLTV（生涯価値）ファクトテーブル。
+      ユーザーごとの累積収益を日付別に集計。
+    columns:
+      - name: event_date
+        description: イベント発生日
+        data_tests:
+          - not_null
+      - name: user_pseudo_id
+        description: 匿名ユーザーID
+        data_tests:
+          - not_null
+      - name: first_access_date
+        description: ユーザー初回アクセス日
+      - name: days_since_first_access
+        description: 初回アクセスからの日数
+      - name: daily_revenue
+        description: 当日収益
+      - name: cumulative_ltv
+        description: 累積LTV（当日までの合計収益）
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - event_date
+            - user_pseudo_id

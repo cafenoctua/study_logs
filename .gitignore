@@ -3,3 +3,4 @@
 # Terraform
 .terraform/
 **/.terraform/
+*.log

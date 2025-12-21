@@ -1,0 +1,24 @@
+workspace:
+  edition: '1.3'
+  name: dbt_ci_test
+  description: dbt ci test
+  includes:
+    - path: models
+    - path: macros
+      type: macro
+  defaults:
+    dialect: bigquery
+    preprocessor: jinja
+
+---
+  # This the default lint configuration
+  sdf-args:
+    lint: >
+      -w capitalization-keywords=consistent
+      -w capitalization-literals=consistent
+      -w capitalization-types=consistent
+      -w capitalization-functions=consistent
+      -w references-quoting
+      -w structure-else-null
+      -w structure-unused-cte
+      -w structure-distinct

@@ -1,0 +1,197 @@
+# =============================================================================
+# dbt Selectors 設定
+# =============================================================================
+# 参考: https://docs.getdbt.com/reference/node-selection/yaml-selectors
+#
+# 使い方:
+#   dbt build --selector <selector_name>
+#   dbt ls --selector <selector_name>  # 対象モデルを事前確認
+#
+# =============================================================================
+#
+# Defer戦略について:
+# --defer フラグと --state オプションを組み合わせることで、
+# 変更されたモデル（state:modified+）のみをビルドし、
+# 上流の未変更モデルは既存環境（本番/ステージング）のデータを参照します。
+#
+# これにより:
+# - ビルド時間の大幅短縮
+# - コスト削減（不要なモデル実行を回避）
+# - 本番データとの整合性確認が可能
+#
+# 実行例:
+#   dbt build --selector ci_slim --defer --state ./prod-manifest
+#
+# =============================================================================
+
+selectors:
+  # ===========================================================================
+  # CI/CD 用セレクター（Defer戦略対応）
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # ci_slim: Slim CI（変更分のみビルド、上流はdefer参照）
+  # ---------------------------------------------------------------------------
+  - name: ci_slim
+    description: |
+      CI用: 変更されたモデルとその下流のみをビルド。
+      上流モデルは --defer で本番/ステージング環境を参照。
+      dbt_project_evaluatorは除外（別途実行）。
+    definition:
+      intersection:
+        - method: state
+          value: modified+
+        - exclude:
+            - method: package
+              value: dbt_project_evaluator
+
+  # ---------------------------------------------------------------------------
+  # ci_slim_with_tests: Slim CI + 必須テスト
+  # ---------------------------------------------------------------------------
+  - name: ci_slim_with_tests
+    description: |
+      CI用: 変更分 + tag:ciで指定された必須テストを実行。
+      上流モデルは --defer で参照。
+    definition:
+      intersection:
+        - union:
+            - method: state
+              value: modified+
+            - method: tag
+              value: ci
+        - exclude:
+            - method: package
+              value: dbt_project_evaluator
+
+  # ---------------------------------------------------------------------------
+  # evaluator: dbt_project_evaluator のみ実行
+  # ---------------------------------------------------------------------------
+  - name: evaluator
+    description: |
+      構造解析: dbt_project_evaluatorパッケージのみを実行。
+      DAG構造、命名規則、ドキュメントカバレッジ等をチェック。
+    definition:
+      method: package
+      value: dbt_project_evaluator
+
+  # ===========================================================================
+  # ローカル開発用セレクター（Defer戦略対応）
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # dev_modified: 開発中の変更分のみ（上流はdefer参照）
+  # ---------------------------------------------------------------------------
+  - name: dev_modified
+    description: |
+      開発用: 変更されたモデルとその下流のみをビルド。
+      上流モデルは --defer でステージング環境を参照。
+    definition:
+      intersection:
+        - method: state
+          value: modified+
+        - exclude:
+            - method: package
+              value: dbt_project_evaluator
+
+  # ---------------------------------------------------------------------------
+  # dev_wip: WIPタグ付きモデルのみ（上流はdefer参照）
+  # ---------------------------------------------------------------------------
+  - name: dev_wip
+    description: |
+      開発用: tag:wipが付いたモデルとその下流のみを実行。
+      上流モデルは --defer で参照。
+    definition:
+      intersection:
+        - method: tag
+          value: wip
+          children: true
+        - exclude:
+            - method: package
+              value: dbt_project_evaluator
+
+  # ---------------------------------------------------------------------------
+  # dev_full: ローカルでのフルビルド（defer不使用）
+  # ---------------------------------------------------------------------------
+  - name: dev_full
+    description: |
+      開発用: プロジェクト全体をビルド（evaluator除外）。
+    definition:
+      intersection:
+        - method: fqn
+          value: "*"
+        - exclude:
+            - method: package
+              value: dbt_project_evaluator
+
+  # ===========================================================================
+  # 本番デプロイ用セレクター
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # prod_full: 本番フルビルド
+  # ---------------------------------------------------------------------------
+  - name: prod_full
+    description: |
+      本番用: プロジェクト全体をビルド（evaluator除外）。
+    definition:
+      intersection:
+        - method: fqn
+          value: "*"
+        - exclude:
+            - method: package
+              value: dbt_project_evaluator
+
+  # ---------------------------------------------------------------------------
+  # prod_incremental: 本番増分更新
+  # ---------------------------------------------------------------------------
+  - name: prod_incremental
+    description: |
+      本番用: 増分テーブルのみ更新。
+    definition:
+      intersection:
+        - method: config
+          value: "materialized:incremental"
+        - exclude:
+            - method: package
+              value: dbt_project_evaluator
+
+  # ===========================================================================
+  # レイヤー別セレクター
+  # ===========================================================================
+
+  - name: layer_staging
+    description: |
+      レイヤー別: stagingモデルのみ実行。
+    definition:
+      method: path
+      value: models/staging
+
+  - name: layer_marts
+    description: |
+      レイヤー別: martsモデルのみ実行。
+    definition:
+      method: path
+      value: models/marts
+
+  # ===========================================================================
+  # テスト用セレクター
+  # ===========================================================================
+
+  - name: unit_tests
+    description: |
+      テスト用: ユニットテストのみ実行。
+    definition:
+      method: test_type
+      value: unit
+
+  - name: data_tests_modified
+    description: |
+      テスト用: 変更されたモデルに関連するデータテストのみ実行。
+    definition:
+      intersection:
+        - method: state
+          value: modified+
+          indirect_selection: eager
+        - exclude:
+            - method: package
+              value: dbt_project_evaluator

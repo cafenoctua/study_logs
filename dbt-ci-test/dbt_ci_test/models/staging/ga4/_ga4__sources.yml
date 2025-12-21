@@ -1,0 +1,36 @@
+version: 2
+
+sources:
+  - name: ga4_ecommerce
+    description: GA4 obfuscated sample ecommerce data
+    database: bigquery-public-data
+    schema: ga4_obfuscated_sample_ecommerce
+    tables:
+      - name: events
+        description: |
+          GA4イベントデータ（ワイルドカードテーブル）
+          日付シャードされたテーブル events_* を参照
+        identifier: events_*
+        columns:
+          - name: event_date
+            description: イベント発生日（YYYYMMDD形式）
+          - name: event_timestamp
+            description: イベント発生タイムスタンプ（マイクロ秒）
+          - name: event_name
+            description: イベント名
+          - name: event_params
+            description: イベントパラメータ（RECORD型）
+          - name: user_id
+            description: ユーザーID
+          - name: user_pseudo_id
+            description: 匿名ユーザーID
+          - name: user_first_touch_timestamp
+            description: ユーザー初回アクセスタイムスタンプ
+          - name: device
+            description: デバイス情報（RECORD型）
+          - name: geo
+            description: 地理情報（RECORD型）
+          - name: app_info
+            description: アプリケーション情報（RECORD型）
+          - name: ecommerce
+            description: Eコマース情報（RECORD型）
