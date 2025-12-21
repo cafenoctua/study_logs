@@ -219,7 +219,19 @@ jobs:
             --state ./prod_state \
             --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
           EXIT_CODE=${PIPESTATUS[0]}
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+          # state:modifiedで変更がない場合は成功として扱う
+          if grep -q "does not match any enabled nodes" dbt_build_output.txt; then
+            echo "No modified models found - skipping build"
+            echo "## 🔨 dbt Build Results" > build_report.md
+            echo "" >> build_report.md
+            echo "ℹ️ No modified models detected. Nothing to build." >> build_report.md
+            echo "exit_code=0" >> $GITHUB_OUTPUT
+            echo "no_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+            echo "no_changes=false" >> $GITHUB_OUTPUT
+          fi
           exit 0
 
       # フルビルド（prod manifestがない場合、またはfull_build指定時）
@@ -238,6 +250,7 @@ jobs:
       # 結果をパース
       - name: Parse build results
         id: parse-results
+        if: steps.dbt-build.outputs.no_changes != 'true'
         run: |
           python3 << 'EOF'
           import re
@@ -363,7 +376,6 @@ jobs:
 
       # push/workflow_dispatch時は結果をサマリーに出力
       - name: Output build results (non-PR trigger)
-        if: github.event_name != 'pull_request'
         run: |
           cat build_report.md >> $GITHUB_STEP_SUMMARY
 
@@ -510,7 +522,6 @@ jobs:
 
       # push/workflow_dispatch時は結果をサマリーに出力
       - name: Output lint results (non-PR trigger)
-        if: github.event_name != 'pull_request'
         run: |
           echo "## 🔍 SDF Lint Results" >> $GITHUB_STEP_SUMMARY
           cat lint_report.md >> $GITHUB_STEP_SUMMARY
@@ -568,9 +579,9 @@ jobs:
       - name: dbt deps
         run: dbt deps
 
-      # BigQueryのレート制限対策: dbt-test完了後に少し待機
+      # BigQueryのレート制限対策: dbt-test完了後に待機
       - name: Wait for BigQuery rate limit
-        run: sleep 10
+        run: sleep 30
 
       - name: dbt compile
         run: dbt compile --target ${{ github.event.inputs.target || 'ci' }}
@@ -579,21 +590,48 @@ jobs:
         id: evaluator
         run: |
           set +e
-          # リトライロジック（BigQueryの一時的なエラー対策）
-          for i in 1 2 3; do
-            echo "Attempt $i..."
+          MAX_RETRIES=5
+          RETRY_DELAY=60
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "=== Attempt $i of $MAX_RETRIES ==="
             dbt build \
               --select package:dbt_project_evaluator \
               --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee evaluator_output.txt
             EXIT_CODE=${PIPESTATUS[0]}
+
+            # 成功した場合は終了
             if [ $EXIT_CODE -eq 0 ]; then
+              echo "✅ dbt_project_evaluator completed successfully"
               break
             fi
-            if [ $i -lt 3 ]; then
-              echo "Retrying in 30 seconds..."
-              sleep 30
+
+            # Database Errorをチェック
+            if grep -q "Database Error" evaluator_output.txt || grep -q "Request couldn't be served" evaluator_output.txt; then
+              echo "⚠️ BigQuery temporary error detected"
+              if [ $i -lt $MAX_RETRIES ]; then
+                echo "Waiting ${RETRY_DELAY} seconds before retry..."
+                sleep $RETRY_DELAY
+                # 待機時間を増加（エクスポネンシャルバックオフ）
+                RETRY_DELAY=$((RETRY_DELAY + 30))
+              fi
+            else
+              # Database Error以外のエラーはリトライしない
+              echo "❌ Non-retryable error occurred"
+              break
             fi
           done
+
+          # 最終的にエラーの場合でもレポートを生成
+          if [ $EXIT_CODE -ne 0 ]; then
+            if grep -q "Database Error" evaluator_output.txt; then
+              echo "## 📊 dbt Project Evaluator Results" > evaluator_report.md
+              echo "" >> evaluator_report.md
+              echo "⚠️ BigQuery temporary error occurred after $MAX_RETRIES retries." >> evaluator_report.md
+              echo "Please re-run the workflow." >> evaluator_report.md
+            fi
+          fi
+
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           exit 0
 
@@ -677,6 +715,5 @@ jobs:
 
       # push/workflow_dispatch時は結果をサマリーに出力
       - name: Output evaluator results (non-PR trigger)
-        if: github.event_name != 'pull_request'
         run: |
           cat evaluator_report.md >> $GITHUB_STEP_SUMMARY
