@@ -288,10 +288,11 @@ jobs:
         working-directory: dbt-ci-test/dbt_ci_test
         run: |
           set +e
-          echo "Running: dbt build --selector ci_slim --state ./prod_state"
+          echo "Running: dbt build --selector ci_slim --defer --state ./prod_state"
 
           dbt build \
             --selector ci_slim \
+            --defer \
             --state ./prod_state \
             --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
           EXIT_CODE=${PIPESTATUS[0]}
