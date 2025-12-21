@@ -67,7 +67,7 @@ env:
   DBT_PROFILES_DIR: ${{ github.workspace }}/dbt-ci-test/dbt_ci_test
   DBT_BQ_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
   DBT_BQ_DATASET: dbt_ci_${{ github.event.inputs.dataset_suffix || format('pr{0}', github.event.pull_request.number) }}
-  DBT_BQ_LOCATION: asia-northeast1
+  DBT_BQ_LOCATION: US
 
 defaults:
   run:
@@ -122,20 +122,18 @@ jobs:
                 method: oauth
                 project: "{{ env_var('DBT_BQ_PROJECT') }}"
                 dataset: "{{ env_var('DBT_BQ_DATASET', 'dbt_ci') }}"
-                location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
+                location: US
                 threads: 4
                 job_execution_timeout_seconds: 300
-                job_retries: 1
                 priority: interactive
               prod:
                 type: bigquery
                 method: oauth
                 project: "{{ env_var('DBT_BQ_PROJECT') }}"
                 dataset: dbt_ci_test_prod
-                location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
+                location: US
                 threads: 4
                 job_execution_timeout_seconds: 300
-                job_retries: 1
                 priority: batch
           EOF
             echo "✅ profiles.yml created"
@@ -235,20 +233,18 @@ jobs:
                 method: oauth
                 project: "{{ env_var('DBT_BQ_PROJECT') }}"
                 dataset: "{{ env_var('DBT_BQ_DATASET', 'dbt_ci') }}"
-                location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
+                location: US
                 threads: 4
                 job_execution_timeout_seconds: 300
-                job_retries: 1
                 priority: interactive
               prod:
                 type: bigquery
                 method: oauth
                 project: "{{ env_var('DBT_BQ_PROJECT') }}"
                 dataset: dbt_ci_test_prod
-                location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
+                location: US
                 threads: 4
                 job_execution_timeout_seconds: 300
-                job_retries: 1
                 priority: batch
           EOF
             echo "✅ profiles.yml created"
@@ -292,26 +288,53 @@ jobs:
         working-directory: dbt-ci-test/dbt_ci_test
         run: |
           set +e
-          echo "Running: dbt build --selector ci_slim --state ./prod_state"
+          MAX_RETRIES=3
+          RETRY_DELAY=30
 
-          dbt build \
-            --selector ci_slim \
-            --state ./prod_state \
-            --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
-          EXIT_CODE=${PIPESTATUS[0]}
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "=== Attempt $i of $MAX_RETRIES ==="
+            echo "Running: dbt build --selector ci_slim --state ./prod_state"
 
-          # state:modifiedで変更がない場合は成功として扱う
-          if grep -q "does not match any enabled nodes" dbt_build_output.txt; then
-            echo "No modified models found - skipping build"
-            echo "## 🔨 dbt Build Results" > build_report.md
-            echo "" >> build_report.md
-            echo "ℹ️ No modified models detected. Nothing to build." >> build_report.md
-            echo "exit_code=0" >> $GITHUB_OUTPUT
-            echo "no_changes=true" >> $GITHUB_OUTPUT
-          else
-            echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-            echo "no_changes=false" >> $GITHUB_OUTPUT
-          fi
+            dbt build \
+              --selector ci_slim \
+              --state ./prod_state \
+              --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
+            EXIT_CODE=${PIPESTATUS[0]}
+
+            # state:modifiedで変更がない場合は成功として扱う
+            if grep -q "does not match any enabled nodes" dbt_build_output.txt; then
+              echo "No modified models found - skipping build"
+              echo "## 🔨 dbt Build Results" > build_report.md
+              echo "" >> build_report.md
+              echo "ℹ️ No modified models detected. Nothing to build." >> build_report.md
+              echo "exit_code=0" >> $GITHUB_OUTPUT
+              echo "no_changes=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            # 成功した場合は終了
+            if [ $EXIT_CODE -eq 0 ]; then
+              echo "✅ dbt build completed successfully"
+              break
+            fi
+
+            # Database Errorをチェックしてリトライ
+            if grep -q "Database Error" dbt_build_output.txt || grep -q "Request couldn't be served" dbt_build_output.txt; then
+              echo "⚠️ BigQuery temporary error detected"
+              if [ $i -lt $MAX_RETRIES ]; then
+                echo "Waiting ${RETRY_DELAY} seconds before retry..."
+                sleep $RETRY_DELAY
+                RETRY_DELAY=$((RETRY_DELAY + 30))
+              fi
+            else
+              # Database Error以外のエラーはリトライしない
+              echo "❌ Non-retryable error occurred"
+              break
+            fi
+          done
+
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "no_changes=false" >> $GITHUB_OUTPUT
           exit 0
 
       # フルビルド（prod manifestがない場合、またはfull_build指定時）
@@ -321,12 +344,39 @@ jobs:
         working-directory: dbt-ci-test/dbt_ci_test
         run: |
           set +e
-          echo "Running: dbt build (full)"
+          MAX_RETRIES=3
+          RETRY_DELAY=30
 
-          dbt build \
-            --exclude package:dbt_project_evaluator \
-            --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
-          EXIT_CODE=${PIPESTATUS[0]}
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "=== Attempt $i of $MAX_RETRIES ==="
+            echo "Running: dbt build (full)"
+
+            dbt build \
+              --exclude package:dbt_project_evaluator \
+              --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
+            EXIT_CODE=${PIPESTATUS[0]}
+
+            # 成功した場合は終了
+            if [ $EXIT_CODE -eq 0 ]; then
+              echo "✅ dbt build completed successfully"
+              break
+            fi
+
+            # Database Errorをチェックしてリトライ
+            if grep -q "Database Error" dbt_build_output.txt || grep -q "Request couldn't be served" dbt_build_output.txt; then
+              echo "⚠️ BigQuery temporary error detected"
+              if [ $i -lt $MAX_RETRIES ]; then
+                echo "Waiting ${RETRY_DELAY} seconds before retry..."
+                sleep $RETRY_DELAY
+                RETRY_DELAY=$((RETRY_DELAY + 30))
+              fi
+            else
+              # Database Error以外のエラーはリトライしない
+              echo "❌ Non-retryable error occurred"
+              break
+            fi
+          done
+
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           echo "no_changes=false" >> $GITHUB_OUTPUT
           exit 0
@@ -491,11 +541,17 @@ jobs:
       - name: Install SDF
         run: |
           curl -LSfs https://cdn.sdf.com/releases/download/install.sh | sh -s
-          echo "$HOME/.sdf/bin" >> $GITHUB_PATH
-          # インストール確認
-          if [ -f "$HOME/.sdf/bin/sdf" ]; then
+          # インストール確認（インストール先は環境により異なる）
+          if command -v sdf &> /dev/null; then
             echo "✅ SDF installed successfully"
+            sdf --version
+          elif [ -f "$HOME/.sdf/bin/sdf" ]; then
+            echo "✅ SDF installed to ~/.sdf/bin"
+            echo "$HOME/.sdf/bin" >> $GITHUB_PATH
             $HOME/.sdf/bin/sdf --version
+          elif [ -f "/usr/bin/sdf" ]; then
+            echo "✅ SDF installed to /usr/bin"
+            /usr/bin/sdf --version
           else
             echo "❌ SDF installation failed"
             exit 1
@@ -678,20 +734,18 @@ jobs:
                 method: oauth
                 project: "{{ env_var('DBT_BQ_PROJECT') }}"
                 dataset: "{{ env_var('DBT_BQ_DATASET', 'dbt_ci') }}"
-                location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
+                location: US
                 threads: 4
                 job_execution_timeout_seconds: 300
-                job_retries: 1
                 priority: interactive
               prod:
                 type: bigquery
                 method: oauth
                 project: "{{ env_var('DBT_BQ_PROJECT') }}"
                 dataset: dbt_ci_test_prod
-                location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
+                location: US
                 threads: 4
                 job_execution_timeout_seconds: 300
-                job_retries: 1
                 priority: batch
           EOF
             echo "✅ profiles.yml created"

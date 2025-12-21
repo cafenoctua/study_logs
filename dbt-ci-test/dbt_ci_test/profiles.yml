@@ -22,10 +22,9 @@ dbt_ci_test:
       method: oauth
       project: "{{ env_var('DBT_BQ_PROJECT', 'sweepsump') }}"
       dataset: "{{ env_var('DBT_BQ_DATASET', 'dbt_ci_test') }}"
-      location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
+      location: US
       threads: 4
       job_execution_timeout_seconds: 300
-      job_retries: 1
       priority: interactive
 
     # -------------------------------------------------------------------------
@@ -36,10 +35,9 @@ dbt_ci_test:
       method: oauth
       project: "{{ env_var('DBT_BQ_PROJECT') }}"
       dataset: "{{ env_var('DBT_BQ_DATASET', 'dbt_ci') }}"
-      location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
+      location: US
       threads: 4
       job_execution_timeout_seconds: 300
-      job_retries: 1
       priority: interactive
 
     # -------------------------------------------------------------------------
@@ -50,8 +48,7 @@ dbt_ci_test:
       method: oauth
       project: "{{ env_var('DBT_BQ_PROJECT') }}"
       dataset: dbt_ci_test_prod
-      location: "{{ env_var('DBT_BQ_LOCATION', 'US') }}"
+      location: US
       threads: 4
       job_execution_timeout_seconds: 300
-      job_retries: 1
       priority: batch
