@@ -65,7 +65,7 @@ on:
 
 env:
   DBT_PROFILES_DIR: ${{ github.workspace }}/dbt-ci-test/dbt_ci_test
-  DBT_BQ_PROJECT: ${{ secrets.GCP_PROJECT_ID || 'sweepsump' }}
+  DBT_BQ_PROJECT: sweepsump
   DBT_BQ_DATASET: dbt_ci_${{ github.event.inputs.dataset_suffix || format('pr{0}', github.event.pull_request.number) }}
   DBT_BQ_LOCATION: US
 
@@ -661,7 +661,7 @@ jobs:
       id-token: write
 
     env:
-      DBT_PROJECT_EVALUATOR_SEVERITY: warn
+      DBT_PROJECT_EVALUATOR_SEVERITY: error
 
     steps:
       - name: Checkout
