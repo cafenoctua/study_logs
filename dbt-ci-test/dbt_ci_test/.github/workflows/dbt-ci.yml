@@ -22,6 +22,18 @@ on:
       - 'packages.yml'
       - 'selectors.yml'
 
+  push:
+    branches: [main]
+    paths:
+      - 'models/**'
+      - 'macros/**'
+      - 'tests/**'
+      - 'seeds/**'
+      - 'snapshots/**'
+      - 'dbt_project.yml'
+      - 'packages.yml'
+      - 'selectors.yml'
+
   workflow_dispatch:
     inputs:
       target:
@@ -141,7 +153,7 @@ jobs:
     name: dbt Build & Test
     runs-on: ubuntu-latest
     needs: [update-prod-manifest]
-    if: ${{ always() && needs.update-prod-manifest.result == 'success' && (github.event_name == 'pull_request' || github.event.inputs.run_dbt_test == 'true') }}
+    if: ${{ always() && needs.update-prod-manifest.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'push' || github.event.inputs.run_dbt_test == 'true') }}
     permissions:
       contents: read
       pull-requests: write
@@ -343,9 +355,9 @@ jobs:
               });
             }
 
-      # workflow_dispatch時は結果をサマリーに出力
-      - name: Output build results (manual trigger)
-        if: github.event_name == 'workflow_dispatch'
+      # push/workflow_dispatch時は結果をサマリーに出力
+      - name: Output build results (non-PR trigger)
+        if: github.event_name != 'pull_request'
         run: |
           cat build_report.md >> $GITHUB_STEP_SUMMARY
 
@@ -356,7 +368,7 @@ jobs:
     name: SDF Lint & Format
     runs-on: ubuntu-latest
     needs: [update-prod-manifest]
-    if: ${{ always() && needs.update-prod-manifest.result == 'success' && (github.event_name == 'pull_request' || github.event.inputs.run_sdf_lint == 'true') }}
+    if: ${{ always() && needs.update-prod-manifest.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'push' || github.event.inputs.run_sdf_lint == 'true') }}
     permissions:
       contents: write
       pull-requests: write
@@ -491,9 +503,9 @@ jobs:
               });
             }
 
-      # workflow_dispatch時は結果をサマリーに出力
-      - name: Output lint results (manual trigger)
-        if: github.event_name == 'workflow_dispatch'
+      # push/workflow_dispatch時は結果をサマリーに出力
+      - name: Output lint results (non-PR trigger)
+        if: github.event_name != 'pull_request'
         run: |
           echo "## 🔍 SDF Lint Results" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.check-changes.outputs.changes }}" == "true" ]; then
@@ -509,7 +521,7 @@ jobs:
     name: dbt Project Evaluator
     runs-on: ubuntu-latest
     needs: [update-prod-manifest]
-    if: ${{ always() && needs.update-prod-manifest.result == 'success' && (github.event_name == 'pull_request' || github.event.inputs.run_evaluator == 'true') }}
+    if: ${{ always() && needs.update-prod-manifest.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'push' || github.event.inputs.run_evaluator == 'true') }}
     permissions:
       contents: read
       pull-requests: write
@@ -638,8 +650,8 @@ jobs:
               });
             }
 
-      # workflow_dispatch時は結果をサマリーに出力
-      - name: Output evaluator results (manual trigger)
-        if: github.event_name == 'workflow_dispatch'
+      # push/workflow_dispatch時は結果をサマリーに出力
+      - name: Output evaluator results (non-PR trigger)
+        if: github.event_name != 'pull_request'
         run: |
           cat evaluator_report.md >> $GITHUB_STEP_SUMMARY
