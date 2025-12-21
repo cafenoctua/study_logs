@@ -3,6 +3,7 @@
         materialized='table'
     )
 }}
+-- CI trigger: 2025-12-21
 
 with events as (
     select * from {{ ref('stg_ga4__events') }}
