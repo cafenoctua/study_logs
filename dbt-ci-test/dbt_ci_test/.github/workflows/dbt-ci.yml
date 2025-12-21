@@ -12,15 +12,6 @@ name: dbt CI
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'models/**'
-      - 'macros/**'
-      - 'tests/**'
-      - 'seeds/**'
-      - 'snapshots/**'
-      - 'dbt_project.yml'
-      - 'packages.yml'
-      - 'selectors.yml'
 
   push:
     branches: [main]
