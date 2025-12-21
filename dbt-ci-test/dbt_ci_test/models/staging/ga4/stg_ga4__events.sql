@@ -3,6 +3,7 @@
         materialized='view'
     )
 }}
+-- CI trigger: 2024-12-21
 
 with source as (
     select * from {{ source('ga4_ecommerce', 'events') }}
