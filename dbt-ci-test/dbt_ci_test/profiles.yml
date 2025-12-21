@@ -20,7 +20,7 @@ dbt_ci_test:
     dev:
       type: bigquery
       method: oauth
-      project: "{{ env_var('DBT_BQ_PROJECT', 'sweepsump') }}"
+      project: 'sweepsump'
       dataset: "{{ env_var('DBT_BQ_DATASET', 'dbt_ci_test') }}"
       location: US
       threads: 4
@@ -33,7 +33,7 @@ dbt_ci_test:
     ci:
       type: bigquery
       method: oauth
-      project: "{{ env_var('DBT_BQ_PROJECT') }}"
+      project: "sweepsump"
       dataset: "{{ env_var('DBT_BQ_DATASET', 'dbt_ci') }}"
       location: US
       threads: 4
@@ -46,7 +46,7 @@ dbt_ci_test:
     prod:
       type: bigquery
       method: oauth
-      project: "{{ env_var('DBT_BQ_PROJECT') }}"
+      project: "sweepsump"
       dataset: dbt_ci_test_prod
       location: US
       threads: 4
