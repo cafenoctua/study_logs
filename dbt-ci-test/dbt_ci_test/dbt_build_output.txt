@@ -1,24 +1,23 @@
-[0m09:59:53  Running with dbt=1.10.15
-[0m09:59:54  Registered adapter: bigquery=1.10.3
-[0m09:59:54  Unable to do partial parsing because config vars, config profile, or config target have changed
-[0m09:59:54  [[33mWARNING[0m][MissingArgumentsPropertyInGenericTestDeprecation]: Deprecated
+[0m00:52:44  Running with dbt=1.11.2
+[0m00:52:52  Registered adapter: bigquery=1.11.0
+[0m00:52:53  Unable to do partial parsing because config vars, config profile, or config target have changed
+[0m00:52:53  Unable to do partial parsing because profile has changed
+[0m00:52:53  [[33mWARNING[0m][CustomKeyInObjectDeprecation]: Deprecated functionality
+Custom key `descritption` found at `models[1]` in file
+`models/marts/dag/dag.yml`. This may mean the key is a typo, or is simply not a
+key supported by the object.
+[0m00:52:55  [[33mWARNING[0m][MissingArgumentsPropertyInGenericTestDeprecation]: Deprecated
 functionality
-Found top-level arguments to test `dbt_utils.unique_combination_of_columns`.
-Arguments to generic tests should be nested under the `arguments` property.`
-[0m09:59:55  Found 52 models, 1 seed, 49 data tests, 1 source, 674 macros
-[0m09:59:55  
-[0m09:59:55  Concurrency: 4 threads (target='ci')
-[0m09:59:55  
-[0m09:59:56  1 of 1 START sql table model dbt_ci_test.fct_session_summary ................... [RUN]
-[0m10:00:08  1 of 1 OK created sql table model dbt_ci_test.fct_session_summary .............. [[32mCREATE TABLE (361.0k rows, 1.5 GiB processed)[0m in 11.68s]
-[0m10:00:08  
-[0m10:00:08  Finished running 1 table model in 0 hours 0 minutes and 13.18 seconds (13.18s).
-[0m10:00:08  
-[0m10:00:08  [32mCompleted successfully[0m
-[0m10:00:08  
-[0m10:00:08  Done. PASS=1 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=1
-[0m10:00:08  [[33mWARNING[0m][DeprecationsSummary]: Deprecated functionality
+Found top-level arguments to test `dbt_utils.unique_combination_of_columns`
+defined on 'fct_daily_engagement' in package 'dbt_ci_test'
+(models/marts/fct/_fct__models.yml). Arguments to generic tests should be nested
+under the `arguments` property.
+[0m00:52:56  Found 52 models, 1 seed, 49 data tests, 1 source, 691 macros
+[0m00:52:56  The selection criterion 'state:modified+' does not match any enabled nodes
+[0m00:52:56  Nothing to do. Try checking your model configs and model specification args
+[0m00:52:56  [[33mWARNING[0m][DeprecationsSummary]: Deprecated functionality
 Summary of encountered deprecations:
+- CustomKeyInObjectDeprecation: 1 occurrence
 - MissingArgumentsPropertyInGenericTestDeprecation: 7 occurrences
 To see all deprecation instances instead of just the first occurrence of each,
 run command again with the `--show-all-deprecations` flag. You may also need to
