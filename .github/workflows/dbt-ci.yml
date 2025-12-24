@@ -124,7 +124,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add -A
           # GCP認証の一時ファイルを除外
-          git reset -- '**/gha-creds-*.json' 2>/dev/null || true
+          git reset -- './gha-creds-*.json' 2>/dev/null || true
           if git diff --staged --quiet; then
             echo "No formatting changes to commit"
           else
@@ -499,7 +499,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add -A
           # GCP認証の一時ファイルを除外
-          git reset -- '**/gha-creds-*.json' 2>/dev/null || true
+          git reset -- './gha-creds-*.json' 2>/dev/null || true
           if git diff --staged --quiet; then
             echo "No dbt-osmosis changes to commit"
           else
