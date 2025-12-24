@@ -1,180 +1,168 @@
-# dbtで堅牢なCIパイプラインを構築する - Slim CI、SDF Lint、dbt_project_evaluatorの実践
+# dbt CI完全ガイド：差分ビルド・リンター・構成チェックを全部入りで実装してみた
 
-dbtプロジェクトでCIを構築する際、単純な`dbt build`だけでは不十分です。本記事では、実際に構築したdbt CIパイプラインの設計・実装について、Slim CI戦略、SDF Lintによるコード品質チェック、dbt_project_evaluatorによる構造解析を組み合わせた堅牢なCI構成を紹介します。
+## 概要
 
-## 目次
+この記事では、dbtのCIについて以下必要だと考えられる処理全て詰め込んで見たものを検討した内容をまとめました。
 
-1. [プロジェクト概要](#プロジェクト概要)
-2. [CI設計の全体像](#ci設計の全体像)
-3. [Slim CI戦略 - state:modified + defer](#slim-ci戦略---statemodified--defer)
-4. [SDF Lintによるリンター・フォーマッター](#sdf-lintによるリンターフォーマッター)
-5. [dbt_project_evaluatorによる構造解析](#dbt_project_evaluatorによる構造解析)
-6. [selectors.ymlによるセレクター管理](#selectorsymlによるセレクター管理)
-7. [GitHub Actionsワークフロー実装](#github-actionsワークフロー実装)
-8. [つまずいたポイントと解決策](#つまずいたポイントと解決策)
-9. [まとめ](#まとめ)
+- リンター・フォーマッター（SDF Lint）
+- dbtの実行可能か（dbt build）
+- データテスト
+- ユニットテスト
+- models.ymlの同期（dbt-osmosis）
+- dbtプロジェクト構成違反検知（dbt_project_evaluator）
 
----
+また、ここで重要になってくるのが都度の全実行だとCIとして非常に時間がかかるため**差分モデルのみに絞った処理（Slim CI）** を作ることを検討しています。
 
-## プロジェクト概要
+## 今回考えたCIの構成
 
-### 利用技術
+### CIの実行概念図
 
-| カテゴリ | 技術 |
-|---------|------|
-| dbt engine | dbt-core |
-| DWH | BigQuery |
-| CI/CD | GitHub Actions |
-| リンター | SDF Lint |
-| 構造解析 | dbt_project_evaluator |
+```mermaid
+flowchart TB
+    subgraph trigger["トリガー"]
+        PR["Pull Request to main"]
+        WD["Workflow Dispatch（手動）"]
+    end
 
-### データパイプライン構成
+    subgraph sdf["Job: sdf-lint（独立実行）"]
+        SDF1["SDF format --save"]
+        SDF2["変更があればコミット"]
+        SDF3["SDF lint"]
+        SDF4["結果をPRコメント"]
+        SDF1 --> SDF2 --> SDF3 --> SDF4
+    end
 
-BigQueryの公開データセット`bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*`を使用し、ディメンショナルモデリングに基づくパイプラインを構築しました。
+    subgraph dbt["Job: dbt-test"]
+        subgraph step1["Step 1: prod manifest生成"]
+            M1["dbt parse -t prod"]
+            M2["prod_state/manifest.json に保存"]
+            M1 --> M2
+        end
+
+        subgraph step2["Step 2: dbt build（defer戦略）"]
+            B1["state:modified+ で差分検出"]
+            B2["--defer で上流は本番参照"]
+            B3["モデル実行 + データテスト + ユニットテスト"]
+            B1 --> B2 --> B3
+        end
+
+        subgraph step3["Step 3: dbt-osmosis"]
+            O1["変更モデルのディレクトリ検出"]
+            O2["yaml refactor 実行"]
+            O3["変更があればコミット"]
+            O1 --> O2 --> O3
+        end
+
+        subgraph step4["Step 4: dbt_project_evaluator"]
+            E1["最新コードをpull"]
+            E2["dbt build --select package:dbt_project_evaluator"]
+            E3["構成違反を検出"]
+            E1 --> E2 --> E3
+        end
+
+        step1 --> step2 --> step3 --> step4
+    end
+
+    subgraph output["PRコメント出力"]
+        C1["SDF Lint Results"]
+        C2["dbt Build Results"]
+        C3["dbt Project Evaluator Results"]
+    end
+
+    trigger --> sdf
+    trigger --> dbt
+    sdf --> C1
+    dbt --> C2
+    dbt --> C3
+```
+
+### CIごとの担当領域と出力内容
+
+| ジョブ | 担当領域 | PRコメント | 自動コミット |
+|--------|----------|------------|--------------|
+| **sdf-lint** | SQL構文チェック・フォーマット | SDF Lint Results | フォーマット修正 |
+| **dbt-test** | モデルビルド・テスト・構成チェック | Build Results / Evaluator Results | dbt-osmosis変更 |
+
+## サンプルプロジェクトの構成
+
+今回のCIを検証するため、GA4のサンプルデータを使ったディメンジョナルモデリングのプロジェクトを構築しました。
+
+### ソースデータ
+
+- `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*`
+
+### モデル構成
 
 ```
 models/
 ├── staging/
 │   └── ga4/
-│       └── stg_ga4__events.sql      # ソースデータの正規化
+│       └── stg_ga4__events.sql      # ソースの正規化
 └── marts/
     ├── dim/
-    │   ├── dim_users.sql            # ユーザー情報
-    │   ├── dim_devices.sql          # 利用デバイス
-    │   ├── dim_geo.sql              # アクセス地域
-    │   └── dim_apps.sql             # アプリケーション情報
+    │   ├── dim_users.sql            # ユーザーディメンション
+    │   ├── dim_devices.sql          # デバイスディメンション
+    │   ├── dim_geo.sql              # 地域ディメンション
+    │   └── dim_apps.sql             # アプリディメンション
     └── fct/
-        ├── fct_daily_engagement.sql # 日別利用時間
-        ├── fct_daily_access.sql     # 日別アクセス数
-        ├── fct_session_summary.sql  # セッションサマリー
-        └── fct_user_ltv.sql         # ユーザーLTV
+        ├── fct_daily_engagement.sql # 日次エンゲージメント
+        ├── fct_daily_access.sql     # 日次アクセス
+        ├── fct_user_ltv.sql         # ユーザーLTV
+        └── fct_session_summary.sql  # セッションサマリー
 ```
 
----
+### stagingモデルの例
 
-## CI設計の全体像
+```sql
+-- models/staging/ga4/stg_ga4__events.sql
+{{
+    config(
+        materialized='view'
+    )
+}}
 
-CIパイプラインは以下の3つの独立したジョブで構成されています。
+with source as (
+    select * from {{ source('ga4_ecommerce', 'events') }}
+),
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    GitHub Actions Workflow                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────────┐                                         │
-│  │ update-prod-    │  manifest.jsonを生成                    │
-│  │ manifest        │  (prod環境をparse)                      │
-│  └────────┬────────┘                                         │
-│           │                                                  │
-│           ▼                                                  │
-│  ┌─────────────────┐  ┌─────────────────┐                   │
-│  │   dbt-test      │  │   sdf-lint      │  ← 並列実行       │
-│  │ (Slim CI +      │  │ (Format + Lint) │                   │
-│  │  defer)         │  │                 │                   │
-│  └────────┬────────┘  └─────────────────┘                   │
-│           │                                                  │
-│           ▼                                                  │
-│  ┌─────────────────┐                                         │
-│  │ dbt-evaluator   │  dbt_project_evaluator実行             │
-│  │                 │                                         │
-│  └─────────────────┘                                         │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
+renamed as (
+    select
+        -- 日付・時間
+        parse_date('%Y%m%d', event_date) as event_date,
+        timestamp_micros(event_timestamp) as event_timestamp,
 
-### 各ジョブの役割
+        -- イベント情報
+        event_name,
 
-| ジョブ | 役割 | 実行タイミング |
-|--------|------|---------------|
-| update-prod-manifest | 本番環境のmanifest.jsonを生成 | 最初に実行 |
-| dbt-test | 変更モデルのビルド・テスト | manifest生成後 |
-| sdf-lint | SQLのフォーマット・リント | 並列実行可 |
-| dbt-evaluator | プロジェクト構造の解析 | dbt-test完了後 |
+        -- ユーザー情報
+        user_id,
+        user_pseudo_id,
+        timestamp_micros(user_first_touch_timestamp) as user_first_touch_timestamp,
 
----
+        -- デバイス情報
+        device.category as device_category,
+        device.operating_system as device_os,
+        ...
 
-## Slim CI戦略 - state:modified + defer
+    from source
+)
 
-### なぜSlim CIが必要か
-
-dbtプロジェクトが大きくなると、すべてのモデルをビルドするのは時間がかかります。PRで変更した部分だけをビルドすることで、CI実行時間を大幅に短縮できます。
-
-### state:modifiedの仕組み
-
-```bash
-dbt build --select state:modified+ --defer --state ./prod_state
+select * from renamed
 ```
 
-- `state:modified+`: 変更されたモデルとその下流を選択
-- `--defer`: 未変更の上流モデルは本番環境を参照
-- `--state ./prod_state`: 比較対象のmanifest.jsonを指定
+## CIの処理ごとに使った技術要素とその検討内容
 
-### manifest.jsonの管理
+### 1. SDF Lint（リンター・フォーマッター）
 
-本番環境のmanifest.jsonを生成し、Artifactとして保存します。
+[SDF](https://www.sdf.com/)はRust製の高速SQLリンター・フォーマッターです。dbtプロジェクトにも対応しています。
 
-```yaml
-# manifest.jsonの生成
-- name: dbt parse (prod)
-  run: dbt parse --target prod
+#### workspace.sdf.yml の設定
 
-# prod_stateディレクトリにコピー
-- name: Update prod_state/manifest.json
-  run: |
-    mkdir -p prod_state
-    cp target/manifest.json prod_state/manifest.json
-
-# Artifactとして保存（mainブランチのみ）
-- name: Upload prod manifest artifact
-  if: github.ref == 'refs/heads/main'
-  uses: actions/upload-artifact@v4
-  with:
-    name: prod-manifest
-    path: dbt-ci-test/dbt_ci_test/prod_state/manifest.json
-```
-
-### 注意点: databaseフィールドの設定
-
-manifest.jsonを生成する際、**必ず本番環境（prod）ターゲットでparseする**必要があります。
-
-誤った設定だと`database`フィールドが空になり、defer時に以下のエラーが発生します：
-
-```
-Database Error in model fct_session_summary
-  Syntax error: Invalid empty identifier at [17:19]
-```
-
-profiles.ymlでprojectを明示的に設定することで解決：
-
-```yaml
-prod:
-  type: bigquery
-  method: oauth
-  project: "sweepsump"  # 必ず設定
-  dataset: dbt_ci_test_prod
-  location: US
-```
-
----
-
-## SDF Lintによるリンター・フォーマッター
-
-### SDF Lintとは
-
-[SDF](https://www.sdf.com/)は高速なSQLリンター・フォーマッターです。dbt Labsのブログで「1000倍高速」と紹介されています。
-
-### セットアップ
-
-1. インストール:
-```bash
-curl -LSfs https://cdn.sdf.com/releases/download/install.sh | sh -s
-```
-
-2. `workspace.sdf.yml`を作成:
 ```yaml
 workspace:
   edition: '1.3'
   name: dbt_ci_test
+  description: dbt ci test
   includes:
     - path: models
     - path: macros
@@ -196,123 +184,88 @@ sdf-args:
     -w structure-distinct
 ```
 
-### Jinjaマクロの対応
+#### CIでの実行フロー
 
-SDF Lintはdbtのマクロ（`ref`、`source`など）をそのままでは認識できません。ダミーマクロを作成して対応します：
-
-```sql
--- macros/ref.jinja
-{%- macro ref(model_name) -%}
-{{ model_name }}
-{%- endmacro -%}
-```
-
-### CIでの実行
+1. `sdf format --save` でフォーマット適用
+2. 変更があれば自動コミット
+3. `sdf lint` でリント実行
+4. 結果をPRコメントに投稿
 
 ```yaml
 - name: Run SDF format
-  run: sdf format --save
+  run: |
+    sdf format --save 2>&1 | tee sdf_format_output.txt
 
 - name: Commit formatting changes
   run: |
     git add -A
     if git diff --staged --quiet; then
-      echo "No formatting changes"
+      echo "No formatting changes to commit"
     else
       git commit -m "style: auto-format SQL files with SDF"
       git push
     fi
 
 - name: Run SDF lint
-  run: sdf lint
+  run: |
+    sdf lint 2>&1 | tee sdf_lint_output.txt
 ```
 
----
+### 2. dbt build（Slim CI戦略）
 
-## dbt_project_evaluatorによる構造解析
+#### defer戦略とは
 
-### dbt_project_evaluatorとは
+変更があったモデルとその下流のみをビルドし、上流モデルは本番環境のテーブルを参照する戦略です。
 
-[dbt-project-evaluator](https://github.com/dbt-labs/dbt-project-evaluator)は、dbt Labsが提供するパッケージで、dbtプロジェクトのベストプラクティス違反を自動検出します。
-
-### チェック可能なルール
-
-| カテゴリ | ルール例 |
-|---------|---------|
-| Modeling | ソースへの直接結合、ルートモデルの検出 |
-| Testing | 主キーテストの有無、テストカバレッジ |
-| Documentation | ドキュメント未記載モデル、カバレッジ |
-| Structure | 命名規則（stg_, int_, fct_, dim_）、ディレクトリ構造 |
-| Governance | publicモデルの契約有無 |
-
-### セットアップ
-
-`packages.yml`:
-```yaml
-packages:
-  - package: dbt-labs/dbt_project_evaluator
-    version: 0.8.1
+```
+[本番環境]          [CI環境]
+┌─────────┐
+│ staging │ ◄─────── defer で参照
+└────┬────┘
+     │
+     ▼
+┌─────────┐         ┌─────────┐
+│  marts  │         │  marts  │ ← 変更があればビルド
+└─────────┘         └─────────┘
 ```
 
-`dbt_project.yml`:
-```yaml
-# Severity制御（ローカル: warn、CI: error）
-data_tests:
-  dbt_project_evaluator:
-    +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
-
-# evaluator用のスキーマ設定
-models:
-  dbt_project_evaluator:
-    +schema: dbt_project_evaluator
-
-# BigQuery対応のマクロディスパッチ
-dispatch:
-  - macro_namespace: dbt
-    search_order: ['dbt_project_evaluator', 'dbt']
-
-# 命名規則のカスタマイズ
-vars:
-  dbt_project_evaluator:
-    model_types: ['staging', 'intermediate', 'marts', 'other']
-    staging_folder_name: 'staging'
-    staging_prefixes: ['stg_']
-    intermediate_folder_name: 'intermediate'
-    intermediate_prefixes: ['int_']
-    marts_folder_name: 'marts'
-    marts_prefixes: ['fct_', 'dim_']
-```
-
-### CIでの実行
+#### 実装のポイント
 
 ```yaml
-- name: Run dbt_project_evaluator
-  env:
-    DBT_PROJECT_EVALUATOR_SEVERITY: error  # CIではエラーとして扱う
-  run: dbt build --selector evaluator
+# Step 1: prod manifestの生成
+- name: Generate prod manifest
+  run: |
+    dbt parse --target prod
+    mkdir -p prod_state
+    cp target/manifest.json prod_state/manifest.json
+
+# Step 2: 差分ビルド
+- name: dbt build (slim CI)
+  run: |
+    dbt build \
+      --select state:modified+ \
+      --defer \
+      --state ./prod_state \
+      --target ci \
+      --exclude package:dbt_project_evaluator
 ```
 
----
+**重要なオプション：**
 
-## selectors.ymlによるセレクター管理
+| オプション | 説明 |
+|------------|------|
+| `--select state:modified+` | 変更されたモデルとその下流を選択 |
+| `--defer` | 上流モデルは本番環境を参照 |
+| `--state ./prod_state` | 比較対象のmanifest.jsonの場所 |
+| `--exclude package:dbt_project_evaluator` | evaluatorは別途実行 |
 
-### なぜselectors.ymlを使うのか
-
-複雑な選択条件をYAMLで管理することで：
-
-- コマンドが簡潔になる（`dbt build --selector ci_slim`）
-- 設定がバージョン管理される
-- `dbt ls --selector <name>`で事前確認可能
-
-### セレクター定義
+#### selectors.yml での定義
 
 ```yaml
 selectors:
-  # CI用: 変更モデル + 下流（evaluator除外）
   - name: ci_slim
     description: |
       CI用: 変更されたモデルとその下流のみをビルド。
-      --state オプションと組み合わせて使用。
     definition:
       intersection:
         - method: state
@@ -321,199 +274,220 @@ selectors:
         - exclude:
             - method: package
               value: dbt_project_evaluator
-
-  # evaluatorのみ
-  - name: evaluator
-    description: |
-      構造解析: dbt_project_evaluatorパッケージのみを実行。
-    definition:
-      method: package
-      value: dbt_project_evaluator
-
-  # 開発用: WIPタグ付きモデル
-  - name: dev_wip
-    definition:
-      intersection:
-        - method: tag
-          value: wip
-          children: true
-        - exclude:
-            - method: package
-              value: dbt_project_evaluator
 ```
 
-### 注意: state:modified+の構文
+### 3. dbt-osmosis（models.yml同期）
 
-`value: modified+`は**エラーになります**。以下のように記述します：
+[dbt-osmosis](https://github.com/z3z1ma/dbt-osmosis)は、dbtモデルのスキーマ定義（YAMLファイル）を自動生成・同期するツールです。
+
+#### 差分ディレクトリのみ実行
 
 ```yaml
-# NG
-- method: state
-  value: modified+
+- name: Run dbt-osmosis yaml sync
+  run: |
+    MODIFIED_DIRS=$(git diff --name-only origin/main | \
+      grep 'models/' | \
+      xargs -I {} dirname {} | \
+      sort -u)
 
-# OK
-- method: state
-  value: modified
-  children: true
+    for dir in $MODIFIED_DIRS; do
+      dbt-osmosis yaml refactor --fqn "$dir/"
+    done
 ```
 
+#### dbt_project.yml での配置設定
+
+```yaml
+models:
+  dbt_ci_test:
+    staging:
+      +meta:
+        dbt-osmosis: "_{parent}__models.yml"
+    marts:
+      dim:
+        +meta:
+          dbt-osmosis: "_dim__models.yml"
+      fct:
+        +meta:
+          dbt-osmosis: "_fct__models.yml"
+```
+
+### 4. dbt_project_evaluator（構成違反チェック）
+
+[dbt_project_evaluator](https://github.com/dbt-labs/dbt-project-evaluator)は、dbtプロジェクトのベストプラクティス違反を検出するパッケージです。
+
+#### チェック項目
+
+- **DAG構造**: ソースへの直接JOIN、stagingモデル間の依存など
+- **命名規則**: プレフィックス（stg_, dim_, fct_）の一貫性
+- **ドキュメント**: 未ドキュメントのモデル
+- **テスト**: プライマリキーテストの欠落
+
+#### dbt_project.yml での設定
+
+```yaml
+# テストの重大度を環境変数で制御
+data_tests:
+  dbt_project_evaluator:
+    +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
+
+# 命名規則のカスタマイズ
+vars:
+  dbt_project_evaluator:
+    model_types: ['staging', 'intermediate', 'marts', 'other']
+    staging_prefixes: ['stg_']
+    intermediate_prefixes: ['int_']
+    marts_prefixes: ['fct_', 'dim_']
+```
+
+## GitHub Actions ワークフロー全体像
+
+### トリガー設定
+
+```yaml
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'dbt-ci-test/dbt_ci_test/models/**'
+      - 'dbt-ci-test/dbt_ci_test/macros/**'
+      - 'dbt-ci-test/dbt_ci_test/tests/**'
+      - '.github/workflows/dbt-ci.yml'
+
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'dbt target (ci/dev/prod)'
+        type: choice
+        options: [ci, dev, prod]
+      run_dbt_test:
+        description: 'Run dbt Build & Test job'
+        type: boolean
+        default: true
+      run_sdf_lint:
+        description: 'Run SDF Lint job'
+        type: boolean
+        default: true
+      run_evaluator:
+        description: 'Run dbt Project Evaluator job'
+        type: boolean
+        default: true
+      run_osmosis:
+        description: 'Run dbt-osmosis yaml sync'
+        type: boolean
+        default: true
+      full_build:
+        description: 'Run full build (ignore defer)'
+        type: boolean
+        default: false
+```
+
+### PRコメント出力例
+
+#### SDF Lint Results
+
+```markdown
+## 🔍 SDF Lint Results
+
+✅ All lint checks passed!
+
 ---
+*Generated by dbt CI - SDF Lint*
+```
 
-## GitHub Actionsワークフロー実装
+#### dbt Build Results
 
-### 環境変数設定
+```markdown
+## 🔨 dbt Build Results
+
+### Models
+✅ **8** models succeeded
+
+### Data Tests
+✅ **12** tests passed
+
+### Unit Tests
+ℹ️ No unit tests executed
+
+---
+*Generated by dbt CI - Build & Test*
+```
+
+#### dbt Project Evaluator Results
+
+```markdown
+## 📊 dbt Project Evaluator Results
+
+✅ All best practice checks passed!
+
+**45** rules checked
+
+---
+*Generated by dbt CI - Project Evaluator*
+```
+
+## この検討中で浮かび上がった課題
+
+### 1. SDF Lintの実用性
+
+SDF Lintは高速で優れたツールですが、以下の課題があります：
+
+- **Jinja関数の認識**: `ref()`, `source()` などのdbtマクロをエラーとして認識してしまう
+- **回避策**: ダミーマクロを作成して対応が必要
+
+```sql
+-- macros/ref.jinja
+{%- macro ref(model_name) -%}
+{{ model_name }}
+{%- endmacro -%}
+```
+
+SQLFluffの利用を継続する必要がありそうです。
+
+### 2. CI実行時間の懸念
+
+都度の `dbt build` / `dbt_project_evaluator` の実行は重いため、PRへの変更のたびに実行するのが良いか疑問があります。
+
+**改善案：**
+
+- `push`時は `dbt test --select test_type:unit` のみ実行
+- `pull_request`時に全テスト実行
+- `dbt_project_evaluator` はマージ前の最終チェックのみ
+
+### 3. PR数が多い場合のデータセット競合
+
+複数のPRが同時に実行される場合、CIで使用するデータセットが競合する可能性があります。
+
+**現在の対策：**
 
 ```yaml
 env:
-  DBT_PROFILES_DIR: ${{ github.workspace }}/dbt-ci-test/dbt_ci_test
-  DBT_BQ_PROJECT: sweepsump
   DBT_BQ_DATASET: dbt_ci_${{ format('pr{0}', github.event.pull_request.number) }}
-  DBT_BQ_LOCATION: US
 ```
 
-### profiles.yml
+PR番号ごとにデータセットを分けることで競合を回避しています。
 
-```yaml
-dbt_ci_test:
-  target: dev
-  outputs:
-    ci:
-      type: bigquery
-      method: oauth
-      project: "sweepsump"
-      dataset: "{{ env_var('DBT_BQ_DATASET', 'dbt_ci') }}"
-      location: US
-      threads: 4
-      priority: interactive
+## 今後の展望
 
-    prod:
-      type: bigquery
-      method: oauth
-      project: "sweepsump"
-      dataset: dbt_ci_test_prod
-      location: US
-      threads: 4
-      priority: batch
-```
-
-### dbt buildステップ（defer付き）
-
-```yaml
-- name: dbt build (slim CI with state:modified)
-  run: |
-    dbt build \
-      --selector ci_slim \
-      --defer \
-      --state ./prod_state \
-      --target ci
-```
-
-### PRコメントへの結果投稿
-
-```yaml
-- name: Post build results
-  if: github.event_name == 'pull_request'
-  uses: actions/github-script@v7
-  with:
-    script: |
-      const fs = require('fs');
-      const report = fs.readFileSync('build_report.md', 'utf8');
-
-      const { data: comments } = await github.rest.issues.listComments({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        issue_number: context.issue.number
-      });
-
-      const botComment = comments.find(c =>
-        c.user.type === 'Bot' && c.body.includes('dbt Build Results')
-      );
-
-      const body = `${report}\n\n---\n*Generated by dbt CI*`;
-
-      if (botComment) {
-        await github.rest.issues.updateComment({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          comment_id: botComment.id,
-          body: body
-        });
-      } else {
-        await github.rest.issues.createComment({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          issue_number: context.issue.number,
-          body: body
-        });
-      }
-```
-
----
-
-## つまずいたポイントと解決策
-
-### 1. BigQueryの"Request couldn't be served"エラー
-
-**原因**: BigQueryのロケーション設定の不一致
-
-**解決**: profiles.ymlで`location: US`を明示的に設定
-
-### 2. state:modifiedで"does not match any enabled nodes"
-
-**原因**: 変更がない場合のエラーハンドリング不足
-
-**解決**: エラーメッセージを検出して成功として扱う
-
-```bash
-if grep -q "does not match any enabled nodes" dbt_build_output.txt; then
-  echo "No modified models found - skipping build"
-  exit 0
-fi
-```
-
-### 3. defer時の"Invalid empty identifier"エラー
-
-**原因**: manifest.jsonの`database`フィールドが空
-
-**解決**: `dbt parse --target prod`でprod環境用のmanifestを生成
-
-### 4. selectors.ymlの`modified+`構文エラー
-
-**原因**: YAML selectors で`modified+`は無効
-
-**解決**: `value: modified` + `children: true`に変更
-
-### 5. SDF LintでJinjaマクロがエラー
-
-**原因**: SDF LintがdbtのJinjaマクロを認識できない
-
-**解決**: ダミーマクロを作成（`macros/ref.jinja`など）
-
----
+1. **SQLFluff との併用検討**: SDF Lintの制約を考慮し、SQLFluffとの使い分けを検討
+2. **CI実行の最適化**: pushトリガーでは軽量なユニットテストのみ実行
+3. **キャッシュの活用**: `dbt deps` の結果をキャッシュしてCI時間を短縮
+4. **コスト監視**: BigQueryのクエリコストを可視化してCI実行コストを管理
 
 ## まとめ
 
-### 設定ファイルの役割分担
+本記事では、dbt CIの「全部入り」構成を実装しました。主なポイントは：
 
-| ファイル | 責務 |
-|----------|------|
-| `dbt_project.yml` | 環境変数による動的制御、パッケージ設定 |
-| `selectors.yml` | 静的なセレクター定義、用途別の選択条件 |
-| `profiles.yml` | 環境別の接続設定 |
-| `dbt-ci.yml` | CIワークフロー、環境変数の設定 |
+- **Slim CI戦略**: `state:modified+` と `--defer` で差分ビルドを実現
+- **自動化**: SDF formatとdbt-osmosisによる自動コミット
+- **構成チェック**: dbt_project_evaluatorでベストプラクティス違反を検出
+- **可視化**: 全ての結果をPRコメントとして出力
 
-### ベストプラクティス
+実際の運用では、CI実行時間とチェックの網羅性のバランスを考慮しながら、プロジェクトに合った構成を選択することが重要です。
 
-1. **Slim CI**: `state:modified` + `--defer`で差分のみビルド
-2. **セレクター**: `selectors.yml`で複雑な条件を管理
-3. **Severity制御**: 環境変数で`warn`/`error`を切り替え
-4. **並列実行**: 独立したジョブは並列で実行
-5. **PRコメント**: 結果を自動でPRにコメント
+## 参考文献
 
-### 参考資料
-
-- [dbt Docs: YAML Selectors](https://docs.getdbt.com/reference/node-selection/yaml-selectors)
-- [dbt Docs: Defer to Production](https://docs.getdbt.com/reference/commands/build#defer)
-- [dbt-project-evaluator](https://github.com/dbt-labs/dbt-project-evaluator)
-- [SDF: 1000x Faster SQL Linting](https://www.getdbt.com/blog/1000x-faster-sql-linting)
-- [dbt Labs: CI Check](https://dbt-labs.github.io/dbt-project-evaluator/latest/ci-check/)
+- [dbt Docs: Set up CI](https://docs.getdbt.com/guides/set-up-ci)
+- [dbt-project-evaluator](https://dbt-labs.github.io/dbt-project-evaluator/)
+- [dbt-osmosis](https://github.com/z3z1ma/dbt-osmosis)
+- [SDF - 1000x faster SQL linting](https://www.getdbt.com/blog/1000x-faster-sql-linting)
