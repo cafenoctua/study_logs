@@ -1,0 +1,25 @@
+[0m01:39:41  Running with dbt=1.11.2
+[0m01:39:49  Registered adapter: bigquery=1.11.0
+[0m01:39:50  Unable to do partial parsing because config vars, config profile, or config target have changed
+[0m01:39:50  Unable to do partial parsing because profile has changed
+[0m01:39:50  [[33mWARNING[0m][CustomKeyInObjectDeprecation]: Deprecated functionality
+Custom key `descritption` found at `models[1]` in file
+`models/marts/dag/dag.yml`. This may mean the key is a typo, or is simply not a
+key supported by the object.
+[0m01:39:52  [[33mWARNING[0m][MissingArgumentsPropertyInGenericTestDeprecation]: Deprecated
+functionality
+Found top-level arguments to test `dbt_utils.unique_combination_of_columns`
+defined on 'fct_daily_engagement' in package 'dbt_ci_test'
+(models/marts/fct/_fct__models.yml). Arguments to generic tests should be nested
+under the `arguments` property.
+[0m01:39:53  Found 52 models, 1 seed, 49 data tests, 1 source, 691 macros
+[0m01:39:53  The selection criterion 'state:modified+' does not match any enabled nodes
+[0m01:39:53  Nothing to do. Try checking your model configs and model specification args
+[0m01:39:53  [[33mWARNING[0m][DeprecationsSummary]: Deprecated functionality
+Summary of encountered deprecations:
+- CustomKeyInObjectDeprecation: 1 occurrence
+- MissingArgumentsPropertyInGenericTestDeprecation: 7 occurrences
+To see all deprecation instances instead of just the first occurrence of each,
+run command again with the `--show-all-deprecations` flag. You may also need to
+run with `--no-partial-parse` as some deprecations are only encountered during
+parsing.

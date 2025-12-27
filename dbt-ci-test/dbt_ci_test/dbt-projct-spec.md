@@ -41,11 +41,21 @@
 また、全てのCIがworkflow dispatchによる手動トリガーに対応していること
 workflow dispatchには適宜必要なパラメーター設定が可能な状態にしてください
 
-### テスト戦略
-基本戦略として、変更の入ったモデルとその下流のモデルだけ動作確認とデータテスト、ユニットテストを行います
-変更の上流のモデルの参照先は、`defer`を活用して本番環境の上流モデルを参照するようにしている
+### リンター・フォーマッター
+テストコード実行とは独立させる
+SDF Lintを活用したリンター・フォーマッターを実行します
+フォーマッターで修正しつつそれでもリンターで違反する箇所をまとめた内容を該当するPRコメントとして返して
+リンターの指摘がなければ全て成功した旨をPRに返して
 
-deferのための本番環境のmanifest.jsonは `dbt parse` で本番環境をパースした結果から生成してそのmanifest.jsonをprod_stateディレクトリにあるmanifest.jsonを都度上書きして配置してください
+### dbtのテスト機能活用したCI
+以下の処理を一つのステップにまとめてCI実行のオーバーヘッドを減らしつつそれぞれの実行結果を該当するPRへコメントとして返してください
+deferを利用するため本番環境のmanifest.jsonは `dbt parse` で本番環境をパースした結果から生成してそのmanifest.jsonをprod_stateディレクトリにあるmanifest.jsonを都度上書きして配置してください
+
+実行順序は、上から順に実行するようにしてください
+
+#### dbt build
+基本戦略として、変更の入ったモデルとその下流のモデルだけ動作確認とデータテスト、ユニットテストを行います
+変更の上流のモデルの参照先は、`defer`を活用して本番環境(`prod_state` 以下を参照)の上流モデルを参照するようにしている
 
 これら結果を以下の形式にして該当するPRコメントに残すようにしている
 dbt build実行結果
@@ -55,12 +65,18 @@ dbt build実行結果
 
 詳細については、githubのコメント機能でdetailを使ってスリムに表示してください
 
-### リンター・フォーマッター
-SDF Lintを活用したリンター・フォーマッターを実行します
-フォーマッターで修正しつつそれでもリンターで違反する箇所をまとめた内容を該当するPRコメントとして返して
-リンターの指摘がなければ全て成功した旨をPRに返して
+#### dbt-osmosisを使ったmodels.ymlの更新
+以下コマンドを活用してgit差分のあるモデルだけyamlファイルを更新するようにして
+```
+MODIFIED_DIRS=$(git diff --name-only origin/main | grep 'models/' | xargs -I {} dirname {} | sort -u)
 
-### プロジェクト構成違反
+for dir in $MODIFIED_DIRS; do
+  uvx --with dbt-bigquery dbt-osmosis yaml refactor --fqn "$dir/"
+done
+```
+yamlファイルが更新されたらそれをコミットして該当PRへpushしてください
+
+#### プロジェクト構成違反
 dbt-project-evaluatorを活用して構成違反を検知してください
 検知した結果で違反しているものの詳細はPRコメントとして返してください
 成功した場合もその旨をPRコメントとして返してください
@@ -68,6 +84,8 @@ dbt-project-evaluatorを活用して構成違反を検知してください
 構成の詳細は、以下ドキュメントを参照してください
 - [dbt-project-evaluator-in-ci](./dbt-project-evaluator-in-ci.md)
 - [dbt-project-evaluators-selectors-design](./dbt-project-evaluators-selectors-design.md)
+
+詳細については、githubのコメント機能でdetailを使ってスリムに表示してください
 
 ## dbtの実行方法
 [dbt-project-setting-vs-selectors](./dbt-project-setting-vs-selectors.md)を元にプロジェクト構成とselectors.ymlを設定してください

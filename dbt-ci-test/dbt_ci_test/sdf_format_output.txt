@@ -1,0 +1,4 @@
+error: a value is required for '--save <SAVE>' but none was supplied
+  [possible values: info-schema, assembly, table-deps]
+
+For more information, try '--help'.

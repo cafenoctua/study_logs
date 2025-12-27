@@ -21,6 +21,18 @@ dbt build --select state:modified+ \
 
 prod-manifestの生成は、`dbt parse -t prod` で可能なため前段で実行してmanifest.jsonを作ってから上記コマンドを実行すると良い
 
+## dbt-osmosisを使ったmodels.ymlの同期
+dbt-osmosisをCIで実行して更新・追加されたモデルだけ実行対象としたい
+
+```
+MODIFIED_DIRS=$(git diff --name-only origin/main | grep 'models/' | xargs -I {} dirname {} | sort -u)
+
+for dir in $MODIFIED_DIRS; do
+  uvx --with dbt-bigquery dbt-osmosis yaml refactor --fqn "$dir/"
+done
+```
+上記のようなshell scriptを組むことでgit差分がファイルだけ実行ができる
+
 ## dbt evaluatorを使った構造解析
 https://github.com/dbt-labs/dbt-project-evaluator
 

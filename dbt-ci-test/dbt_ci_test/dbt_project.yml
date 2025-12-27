@@ -47,6 +47,9 @@ models:
     # stagingレイヤー: ソースデータの正規化
     staging:
       +materialized: view
+      +meta:
+        # dbt-osmosis: YAMLファイルの配置先を指定
+        dbt-osmosis: "_{parent}__models.yml"
       ga4:
         +tags: ['ga4', 'staging']
 
@@ -55,8 +58,14 @@ models:
       +materialized: table
       dim:
         +tags: ['dimension']
+        +meta:
+          # dbt-osmosis: YAMLファイルの配置先を指定
+          dbt-osmosis: "_dim__models.yml"
       fct:
         +tags: ['fact']
+        +meta:
+          # dbt-osmosis: YAMLファイルの配置先を指定
+          dbt-osmosis: "_fct__models.yml"
 
   # dbt_project_evaluator パッケージ設定
   dbt_project_evaluator:

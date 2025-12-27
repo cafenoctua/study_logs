@@ -1,0 +1,694 @@
+# =============================================================================
+# dbt CI Workflow
+# =============================================================================
+# 独立した4つのジョブで構成:
+# 1. sdf-lint: SDF Lintによるリンター・フォーマッター
+# 2. dbt-test: モデルビルド + テスト（defer戦略）+ dbt-osmosis + dbt_project_evaluator
+# =============================================================================
+
+name: dbt CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'dbt-ci-test/dbt_ci_test/models/**'
+      - 'dbt-ci-test/dbt_ci_test/macros/**'
+      - 'dbt-ci-test/dbt_ci_test/tests/**'
+      - 'dbt-ci-test/dbt_ci_test/seeds/**'
+      - 'dbt-ci-test/dbt_ci_test/snapshots/**'
+      - 'dbt-ci-test/dbt_ci_test/dbt_project.yml'
+      - 'dbt-ci-test/dbt_ci_test/packages.yml'
+      - 'dbt-ci-test/dbt_ci_test/selectors.yml'
+      - '.github/workflows/dbt-ci.yml'
+
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'dbt target (ci/dev/prod)'
+        required: false
+        default: 'ci'
+        type: choice
+        options:
+          - ci
+          - dev
+          - prod
+      run_dbt_test:
+        description: 'Run dbt Build & Test job'
+        required: false
+        default: true
+        type: boolean
+      run_sdf_lint:
+        description: 'Run SDF Lint job'
+        required: false
+        default: true
+        type: boolean
+      run_evaluator:
+        description: 'Run dbt Project Evaluator job'
+        required: false
+        default: true
+        type: boolean
+      run_osmosis:
+        description: 'Run dbt-osmosis yaml sync'
+        required: false
+        default: true
+        type: boolean
+      full_build:
+        description: 'Run full build (ignore defer)'
+        required: false
+        default: false
+        type: boolean
+      dataset_suffix:
+        description: 'Dataset suffix (e.g., pr123, manual)'
+        required: false
+        default: 'manual'
+        type: string
+
+env:
+  DBT_PROFILES_DIR: ${{ github.workspace }}/dbt-ci-test/dbt_ci_test
+  DBT_BQ_PROJECT: sweepsump
+  DBT_BQ_DATASET: dbt_ci_${{ github.event.inputs.dataset_suffix || format('pr{0}', github.event.pull_request.number) }}
+  DBT_BQ_LOCATION: US
+
+defaults:
+  run:
+    working-directory: dbt-ci-test/dbt_ci_test
+
+jobs:
+  # ===========================================================================
+  # Job 1: SDF Lint（リンター・フォーマッター）- 独立して実行
+  # ===========================================================================
+  sdf-lint:
+    name: SDF Lint & Format
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_sdf_lint == 'true')
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install SDF
+        run: |
+          curl -LSfs https://cdn.sdf.com/releases/download/install.sh | sh -s
+          if command -v sdf &> /dev/null; then
+            echo "✅ SDF installed successfully"
+            sdf --version
+          elif [ -f "$HOME/.sdf/bin/sdf" ]; then
+            echo "✅ SDF installed to ~/.sdf/bin"
+            echo "$HOME/.sdf/bin" >> $GITHUB_PATH
+            $HOME/.sdf/bin/sdf --version
+          else
+            echo "❌ SDF installation failed"
+            exit 1
+          fi
+
+      - name: Run SDF format
+        id: sdf-format
+        run: |
+          set +e
+          sdf format --save 2>&1 | tee sdf_format_output.txt
+          echo "formatted=true" >> $GITHUB_OUTPUT
+
+      - name: Commit formatting changes
+        working-directory: .
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          # GCP認証の一時ファイルを除外
+          git reset -- './gha-creds-*.json' 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "No formatting changes to commit"
+          else
+            git commit -m "style: auto-format SQL files with SDF"
+            git push
+          fi
+
+      - name: Run SDF lint
+        id: sdf-lint
+        run: |
+          set +e
+          sdf lint 2>&1 | tee sdf_lint_output.txt
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit 0
+
+      - name: Parse lint results
+        id: parse-lint
+        run: |
+          python3 << 'EOF'
+          import re
+          import os
+
+          if not os.path.exists('sdf_lint_output.txt'):
+              output = ""
+          else:
+              with open('sdf_lint_output.txt', 'r') as f:
+                  output = f.read()
+
+          errors = re.findall(r'error:.*', output, re.IGNORECASE)
+          warnings = re.findall(r'warning:.*', output, re.IGNORECASE)
+
+          with open('lint_report.md', 'w') as f:
+              f.write("## 🔍 SDF Lint Results\n\n")
+
+              if not errors and not warnings:
+                  f.write("✅ All lint checks passed!\n")
+              else:
+                  if errors:
+                      f.write(f"❌ **{len(errors)}** errors found\n\n")
+                      f.write("<details>\n<summary>Lint Errors</summary>\n\n")
+                      f.write("```\n")
+                      for e in errors[:20]:
+                          f.write(f"{e}\n")
+                      f.write("```\n\n</details>\n\n")
+
+                  if warnings:
+                      f.write(f"⚠️ **{len(warnings)}** warnings\n\n")
+                      f.write("<details>\n<summary>Lint Warnings</summary>\n\n")
+                      f.write("```\n")
+                      for w in warnings[:20]:
+                          f.write(f"{w}\n")
+                      f.write("```\n\n</details>\n")
+          EOF
+
+      - name: Post lint results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const workspace = process.env.GITHUB_WORKSPACE;
+            const reportPath = path.join(workspace, 'dbt-ci-test/dbt_ci_test/lint_report.md');
+
+            let body;
+            try {
+              const report = fs.readFileSync(reportPath, 'utf8');
+              body = report + "\n\n---\n*Generated by dbt CI - SDF Lint*";
+            } catch (error) {
+              body = "## 🔍 SDF Lint Results\n\n⚠️ Lint report not generated.\n\n---\n*Generated by dbt CI - SDF Lint*";
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('SDF Lint Results')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Output lint results (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "## 🔍 SDF Lint Results" >> $GITHUB_STEP_SUMMARY
+          cat lint_report.md >> $GITHUB_STEP_SUMMARY
+
+  # ===========================================================================
+  # Job 2: dbt Test（モデルビルド + テスト + dbt-osmosis + dbt_project_evaluator）
+  # ===========================================================================
+  dbt-test:
+    name: dbt Build & Test
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_dbt_test == 'true')
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    env:
+      DBT_PROJECT_EVALUATOR_SEVERITY: error
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install dbt-bigquery
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIP_DBT }}
+          service_account: ${{ secrets.WIP_SA_DBT }}
+
+      - name: Verify profiles.yml
+        run: |
+          echo "DBT_PROFILES_DIR: $DBT_PROFILES_DIR"
+          if [ -f "profiles.yml" ]; then
+            echo "✅ profiles.yml found"
+          else
+            echo "❌ profiles.yml not found, creating..."
+            cat > profiles.yml << 'EOF'
+          dbt_ci_test:
+            target: ci
+            outputs:
+              ci:
+                type: bigquery
+                method: oauth
+                project: "sweepsump"
+                dataset: "{{ env_var('DBT_BQ_DATASET', 'dbt_ci') }}"
+                location: US
+                threads: 4
+                job_execution_timeout_seconds: 300
+                priority: interactive
+              prod:
+                type: bigquery
+                method: oauth
+                project: "sweepsump"
+                dataset: dbt_ci_test_prod
+                location: US
+                threads: 4
+                job_execution_timeout_seconds: 300
+                priority: batch
+          EOF
+            echo "✅ profiles.yml created"
+          fi
+
+      - name: dbt deps
+        run: dbt deps
+
+      # =======================================================================
+      # Step 1: prod manifestの生成（dbt parse -t prod）
+      # =======================================================================
+      - name: Generate prod manifest (dbt parse -t prod)
+        run: |
+          dbt parse --target prod
+          mkdir -p prod_state
+          cp target/manifest.json prod_state/manifest.json
+          echo "✅ Generated prod_state/manifest.json"
+
+      # prod manifestの存在確認
+      - name: Check prod manifest
+        id: check-manifest
+        run: |
+          if [ -f "prod_state/manifest.json" ]; then
+            echo "✅ prod manifest found"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ prod manifest not found - will run full build"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # =======================================================================
+      # Step 2: dbt build（state:modified + defer戦略）
+      # =======================================================================
+      - name: dbt build (slim CI with state:modified)
+        id: dbt-build
+        if: steps.check-manifest.outputs.exists == 'true' && github.event.inputs.full_build != 'true'
+        run: |
+          set +e
+          echo "Running: dbt build --select state:modified+ --defer --state ./prod_state --exclude package:dbt_project_evaluator"
+
+          dbt build \
+            --select state:modified+ \
+            --defer \
+            --state ./prod_state \
+            --target ${{ github.event.inputs.target || 'ci' }} \
+            --exclude package:dbt_project_evaluator 2>&1 | tee dbt_build_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          if grep -q "does not match any enabled nodes" dbt_build_output.txt; then
+            echo "No modified models found - skipping build"
+            echo "## 🔨 dbt Build Results" > build_report.md
+            echo "" >> build_report.md
+            echo "ℹ️ No modified models detected. Nothing to build." >> build_report.md
+            echo "exit_code=0" >> $GITHUB_OUTPUT
+            echo "no_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+            echo "no_changes=false" >> $GITHUB_OUTPUT
+          fi
+          exit 0
+
+      # フルビルド（prod manifestがない場合、またはfull_build指定時）
+      - name: dbt build (full)
+        id: dbt-build-full
+        if: steps.check-manifest.outputs.exists == 'false' || github.event.inputs.full_build == 'true'
+        run: |
+          set +e
+          echo "Running: dbt build (full)"
+
+          dbt build \
+            --exclude package:dbt_project_evaluator \
+            --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee dbt_build_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "no_changes=false" >> $GITHUB_OUTPUT
+          exit 0
+
+      # 結果をパース
+      - name: Parse build results
+        id: parse-results
+        if: steps.dbt-build.outputs.no_changes != 'true'
+        run: |
+          python3 << 'EOF'
+          import re
+          import os
+
+          with open('dbt_build_output.txt', 'r') as f:
+              output = f.read()
+
+          # モデル結果
+          model_pass = len(re.findall(r'OK created', output))
+          model_fail = len(re.findall(r'ERROR creating', output))
+          failed_models = re.findall(r'ERROR creating [\w\.]+ model (\w+)', output)
+
+          # データテスト結果
+          data_test_pass = len(re.findall(r'PASS .*?data test', output, re.IGNORECASE))
+          data_test_fail = len(re.findall(r'FAIL .*?data test', output, re.IGNORECASE))
+          data_test_warn = len(re.findall(r'WARN .*?data test', output, re.IGNORECASE))
+          failed_data_tests = re.findall(r'Failure in test (?!.*unit)(\w+)', output)
+
+          # ユニットテスト結果
+          unit_test_pass = len(re.findall(r'PASS .*?unit test', output, re.IGNORECASE))
+          unit_test_fail = len(re.findall(r'FAIL .*?unit test', output, re.IGNORECASE))
+          failed_unit_tests = re.findall(r'Failure in unit test (\w+)', output)
+
+          # フォールバック
+          total_pass = len(re.findall(r'\[32mPASS', output)) or len(re.findall(r'PASS \d+', output))
+          total_fail = len(re.findall(r'\[31mFAIL', output)) or len(re.findall(r'FAIL \d+', output))
+          total_warn = len(re.findall(r'\[33mWARN', output)) or len(re.findall(r'WARN \d+', output))
+
+          if data_test_pass == 0 and unit_test_pass == 0:
+              data_test_pass = total_pass
+              data_test_fail = total_fail
+              data_test_warn = total_warn
+              failed_data_tests = re.findall(r'Failure in test (\w+)', output)
+
+          with open('build_report.md', 'w') as f:
+              f.write("## 🔨 dbt Build Results\n\n")
+
+              # Models
+              f.write("### Models\n")
+              if model_fail == 0:
+                  f.write(f"✅ **{model_pass}** models succeeded\n\n")
+              else:
+                  f.write(f"❌ **{model_fail}** failed, **{model_pass}** succeeded\n\n")
+                  if failed_models:
+                      f.write("<details>\n<summary>Failed Models</summary>\n\n")
+                      for m in failed_models:
+                          f.write(f"- `{m}`\n")
+                      f.write("\n</details>\n\n")
+
+              # Data Tests
+              f.write("### Data Tests\n")
+              if data_test_fail == 0:
+                  f.write(f"✅ **{data_test_pass}** tests passed")
+                  if data_test_warn > 0:
+                      f.write(f", **{data_test_warn}** warnings")
+                  f.write("\n\n")
+              else:
+                  f.write(f"❌ **{data_test_fail}** failed, **{data_test_pass}** passed\n\n")
+                  if failed_data_tests:
+                      f.write("<details>\n<summary>Failed Data Tests</summary>\n\n")
+                      for t in failed_data_tests:
+                          f.write(f"- `{t}`\n")
+                      f.write("\n</details>\n\n")
+
+              # Unit Tests
+              f.write("### Unit Tests\n")
+              if unit_test_fail == 0 and unit_test_pass == 0:
+                  f.write("ℹ️ No unit tests executed\n\n")
+              elif unit_test_fail == 0:
+                  f.write(f"✅ **{unit_test_pass}** unit tests passed\n\n")
+              else:
+                  f.write(f"❌ **{unit_test_fail}** failed, **{unit_test_pass}** passed\n\n")
+                  if failed_unit_tests:
+                      f.write("<details>\n<summary>Failed Unit Tests</summary>\n\n")
+                      for t in failed_unit_tests:
+                          f.write(f"- `{t}`\n")
+                      f.write("\n</details>\n\n")
+
+          print("Build report generated")
+          EOF
+
+      # =======================================================================
+      # Step 3: dbt-osmosisを使ったmodels.ymlの更新
+      # =======================================================================
+      - name: Run dbt-osmosis yaml sync
+        id: dbt-osmosis
+        if: |
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.run_osmosis == 'true')
+        run: |
+          set +e
+          echo "Checking for modified models..."
+
+          MODIFIED_DIRS=$(git diff --name-only origin/main | grep 'models/' | xargs -I {} dirname {} | sort -u)
+
+          if [ -z "$MODIFIED_DIRS" ]; then
+            echo "No modified model directories found"
+            echo "updated=false" >> $GITHUB_OUTPUT
+          else
+            echo "Modified directories: $MODIFIED_DIRS"
+            pip install dbt-osmosis
+
+            for dir in $MODIFIED_DIRS; do
+              echo "Running dbt-osmosis on: $dir/"
+              dbt-osmosis yaml refactor --fqn "$dir/" || true
+            done
+
+            echo "updated=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit dbt-osmosis changes
+        if: steps.dbt-osmosis.outputs.updated == 'true'
+        working-directory: .
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          # GCP認証の一時ファイルを除外
+          git reset -- './gha-creds-*.json' 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "No dbt-osmosis changes to commit"
+          else
+            git commit -m "docs: sync models.yml with dbt-osmosis"
+            git push
+          fi
+
+      # =======================================================================
+      # Step 4: dbt_project_evaluatorによる構成違反チェック
+      # =======================================================================
+      - name: Pull latest changes before evaluator
+        if: |
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.run_evaluator == 'true')
+        working-directory: .
+        run: |
+          git pull origin ${{ github.head_ref || github.ref_name }}
+          echo "✅ Pulled latest changes"
+
+      - name: Run dbt_project_evaluator
+        id: evaluator
+        if: |
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.run_evaluator == 'true')
+        run: |
+          set +e
+
+          # BigQueryのレート制限対策
+          sleep 10
+
+          echo "Running: dbt build --select package:dbt_project_evaluator"
+
+          dbt build \
+            --select package:dbt_project_evaluator \
+            --target ${{ github.event.inputs.target || 'ci' }} 2>&1 | tee evaluator_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit 0
+
+      - name: Parse evaluator results
+        id: parse-evaluator
+        if: |
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.run_evaluator == 'true')
+        run: |
+          python3 << 'EOF'
+          import re
+          import os
+
+          if not os.path.exists('evaluator_output.txt'):
+              output = ""
+          else:
+              with open('evaluator_output.txt', 'r') as f:
+                  output = f.read()
+
+          failures = re.findall(r'Failure in test (fct_\w+)', output)
+          warnings = re.findall(r'Warning in test (fct_\w+)', output)
+          passes = len(re.findall(r'PASS fct_', output))
+
+          with open('evaluator_report.md', 'w') as f:
+              f.write("## 📊 dbt Project Evaluator Results\n\n")
+
+              if not failures and not warnings:
+                  f.write("✅ All best practice checks passed!\n\n")
+                  f.write(f"**{passes}** rules checked\n")
+              else:
+                  if failures:
+                      f.write(f"❌ **{len(failures)}** violations found\n\n")
+                      f.write("<details>\n<summary>Violations</summary>\n\n")
+                      for fail in failures:
+                          rule_name = fail.replace('fct_', '').replace('_', ' ').title()
+                          f.write(f"- {rule_name}\n")
+                      f.write("\n</details>\n\n")
+
+                  if warnings:
+                      f.write(f"⚠️ **{len(warnings)}** warnings\n\n")
+                      f.write("<details>\n<summary>Warnings</summary>\n\n")
+                      for warn in warnings:
+                          rule_name = warn.replace('fct_', '').replace('_', ' ').title()
+                          f.write(f"- {warn}\n")
+                      f.write("\n</details>\n")
+
+          print("Evaluator report generated")
+          EOF
+
+      # =======================================================================
+      # PRコメント投稿（Build ResultsとEvaluator Resultsを別々に）
+      # =======================================================================
+      - name: Post build results to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const workspace = process.env.GITHUB_WORKSPACE;
+            const dbtDir = path.join(workspace, 'dbt-ci-test/dbt_ci_test');
+
+            let body;
+            try {
+              const buildReport = fs.readFileSync(path.join(dbtDir, 'build_report.md'), 'utf8');
+              body = buildReport + "\n\n---\n*Generated by dbt CI - Build & Test*";
+            } catch (e) {
+              body = "## 🔨 dbt Build Results\n\nℹ️ Build report not available.\n\n---\n*Generated by dbt CI - Build & Test*";
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('dbt Build Results')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Post evaluator results to PR
+        if: |
+          github.event_name == 'pull_request' &&
+          (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_evaluator == 'true'))
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const workspace = process.env.GITHUB_WORKSPACE;
+            const dbtDir = path.join(workspace, 'dbt-ci-test/dbt_ci_test');
+
+            let body;
+            try {
+              const evalReport = fs.readFileSync(path.join(dbtDir, 'evaluator_report.md'), 'utf8');
+              body = evalReport + "\n\n---\n*Generated by dbt CI - Project Evaluator*";
+            } catch (e) {
+              body = "## 📊 dbt Project Evaluator Results\n\nℹ️ Evaluator report not available.\n\n---\n*Generated by dbt CI - Project Evaluator*";
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('dbt Project Evaluator Results')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      # workflow_dispatch時は結果をサマリーに出力
+      - name: Output results (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ -f "build_report.md" ]; then
+            cat build_report.md >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "---" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f "evaluator_report.md" ]; then
+            cat evaluator_report.md >> $GITHUB_STEP_SUMMARY
+          fi
