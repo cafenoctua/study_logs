@@ -6,7 +6,7 @@ use std::io::Error;
 use std::io::Write;
 use std::path::Path;
 
-use clap::{Parser, Subcommand};
+use inquire::{Select, Text};
 
 #[derive(Debug, PartialEq)]
 struct Todo {
@@ -179,46 +179,67 @@ impl TodoList {
     }
 }
 
-#[derive(Parser)]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
+fn handle_add(todo_list: &mut TodoList, title: String) -> Result<String, String> {
+    todo_list.add(title.clone())?;
+    Ok(format!("Task added: {}", title))
 }
 
-#[derive(Subcommand)]
-enum Commands {
-    Add { title: String },
-    List,
-    Done { id: u32 },
-    Remove { id: u32 },
+fn handle_done(todo_list: &mut TodoList, id: u32) -> Result<String, String> {
+    todo_list.complete(id.clone())?;
+    Ok(format!("Task completed: {}", id))
+}
+
+fn run_app_loop(todo_list: &mut TodoList) {
+    let actions = vec!["list", "add", "done", "remove", "save", "quit"];
+
+    loop {
+        let action = Select::new("Select action", actions.clone())
+            .prompt()
+            .unwrap_or("quit");
+
+        match action {
+            "add" => {
+                let title = Text::new("Task title:").prompt().unwrap_or_default();
+                match handle_add(todo_list, title) {
+                    Ok(msg) => println!("{}", msg),
+                    Err(e) => println!("Error: {}", e),
+                }
+            }
+            "list" => {
+                let list = todo_list.list();
+                if list.is_empty() {
+                    println!("No tasks.");
+                } else {
+                    println!("{:<4} {:<20} {}", "id", "title", "completed");
+                    for record in list {
+                        println!("{:<4} {:<20} {}", record.id, record.title, record.completed);
+                    }
+                }
+            }
+            "done" => {
+                // TODO(human): handle_done を実装する
+                let id = Text::new("Id:").prompt().unwrap_or_default().parse::<u32>();
+                match handle_done(todo_list, id.unwrap()) {
+                    Ok(msg) => println!("{}", msg),
+                    Err(e) => println!("Error: {}", e),
+                }
+            }
+            "remove" => {
+                // TODO(human): handle_remove を実装する
+            }
+            "save" => match todo_list.save() {
+                Ok(_) => println!("Saved."),
+                Err(e) => println!("Error: {}", e),
+            },
+            _ => break,
+        }
+    }
 }
 
 fn main() {
     let mut todo_list = TodoList::new(String::from("./todo_list.txt"));
-
     todo_list.init();
-
-    let cli = Cli::parse();
-    match cli.command {
-        Commands::Add { title } => {
-            todo_list.add(title);
-            todo_list.save();
-        }
-        Commands::List => {
-            let list = todo_list.list();
-            for record in list {
-                println!("{} {} {}", record.id, record.title, record.completed)
-            }
-        }
-        Commands::Done { id } => {
-            todo_list.complete(id);
-            todo_list.save();
-        }
-        Commands::Remove { id } => {
-            todo_list.remove(id);
-            todo_list.save();
-        }
-    }
+    run_app_loop(&mut todo_list);
 }
 
 #[cfg(test)]
@@ -425,4 +446,14 @@ mod tests {
         let save_result = todo_list.save();
         assert!(save_result.is_err());
     }
+
+    #[test]
+    fn test_handle_add_returns_success_message() {
+        let mut todo_list = TodoList::new(String::from("./test-file.txt"));
+        let result = handle_add(&mut todo_list, String::from("taskA"));
+
+        assert_eq!(Ok(String::from("Task added: taskA")), result);
+    }
+
+    // TODO(human): test_handle_add_returns_error_message_when_empty_title を実装する
 }

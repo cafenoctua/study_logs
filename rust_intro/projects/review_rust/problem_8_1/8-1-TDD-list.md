@@ -88,3 +88,108 @@ Save Todos
 
 - [x] taskA追加して保存した後にtodo listファイルを読み込んだら`1 taskA false` を返す
 - [x] 書き込み対象のファイルを開こうとして失敗したらエラーが返されるか
+
+---
+
+## Phase 2: inquire による対話型CLIインターフェース
+
+### 設計方針
+
+現在の `clap` によるサブコマンド方式（`cargo run -- add "taskA"`）から、
+`inquire` による対話型ループ方式（`cargo run` で起動後にメニュー選択）へ移行する。
+
+#### アーキテクチャ
+
+```
+main()
+ └─ run_app_loop(todo_list)        // メインループ（繰り返しメニューを表示）
+     ├─ select_action()            // inquire::Select でアクション選択
+     └─ match action
+         ├─ "add"    → handle_add(todo_list)
+         ├─ "list"   → handle_list(todo_list)
+         ├─ "done"   → handle_done(todo_list)
+         ├─ "remove" → handle_remove(todo_list)
+         ├─ "save"   → handle_save(todo_list)
+         └─ "quit"   → break
+```
+
+#### 責務分離の方針
+
+- `TodoList` のビジネスロジックは変更しない
+- UI層（inquire呼び出し）を `handle_*` 関数として分離する
+- `handle_*` 関数はビジネスロジックの戻り値（`Result`）を受け取り、ユーザーへのフィードバックを担う
+
+#### 追加する依存
+
+```toml
+inquire = "0.7"
+```
+
+#### 想定UI詳細
+
+```
+? Select action › (矢印キーで選択)
+❯ list
+  add
+  done
+  remove
+  save
+  quit
+
+# addを選択した場合
+? Task title: › taskA
+
+✔ Task added: taskA
+
+# listを選択した場合
+id  title  completed
+1   taskA  false
+
+# doneを選択した場合
+? Task ID: › 1
+✔ Task completed: id=1
+
+# removeを選択した場合
+? Task ID: › 1
+✔ Task removed: id=1
+
+# saveを選択した場合
+✔ Saved.
+
+# 存在しないIDを指定した場合
+✘ Error: Not id in this todo list
+```
+
+---
+
+### test element（Phase 2）
+
+#### handle_add
+
+- [ ] タイトルを入力してタスクが追加された後に成功メッセージが出力される
+- [ ] 空文字を入力したときにエラーメッセージが出力される
+
+#### handle_list
+
+- [ ] タスクが0件のとき、空リストを表示しても正常終了する
+- [ ] タスクが複数件あるとき、id昇順で全件表示される
+
+#### handle_done
+
+- [ ] 存在するIDを入力したときにタスクが完了状態になる
+- [ ] 存在しないIDを入力したときにエラーメッセージが出力される
+
+#### handle_remove
+
+- [ ] 存在するIDを入力したときにタスクが削除される
+- [ ] 存在しないIDを入力したときにエラーメッセージが出力される
+
+#### handle_save
+
+- [ ] saveを選択したときにファイルへの書き込みが成功する
+- [ ] ファイルが存在しない状態でsaveを選択したときにエラーメッセージが出力される
+
+#### run_app_loop
+
+- [ ] quitを選択したときにループが終了する
+- [ ] 一連の操作（add → list → save → quit）が正常に完了する
