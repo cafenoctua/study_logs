@@ -143,12 +143,8 @@ impl TodoList {
     fn remove(&mut self, id: u32) -> Result<(), String> {
         match self.todos.iter().position(|x| x.id == id) {
             Some(index) => {
-                self.next_id = if (self.next_id - 1) == index.try_into().unwrap() {
-                    index.try_into().unwrap()
-                } else {
-                    self.next_id
-                };
                 self.todos.remove(index);
+                self.next_id = self.todos.iter().map(|t| t.id).max().unwrap_or(0) + 1;
                 Ok(())
             }
             None => Err(String::from("Not id in this todo list")),
@@ -185,8 +181,13 @@ fn handle_add(todo_list: &mut TodoList, title: String) -> Result<String, String>
 }
 
 fn handle_done(todo_list: &mut TodoList, id: u32) -> Result<String, String> {
-    todo_list.complete(id.clone())?;
+    todo_list.complete(id)?;
     Ok(format!("Task completed: {}", id))
+}
+
+fn handle_remove(todo_list: &mut TodoList, id: u32) -> Result<String, String> {
+    todo_list.remove(id)?;
+    Ok(format!("Task remove: {}", id))
 }
 
 fn run_app_loop(todo_list: &mut TodoList) {
@@ -217,15 +218,24 @@ fn run_app_loop(todo_list: &mut TodoList) {
                 }
             }
             "done" => {
-                // TODO(human): handle_done を実装する
                 let id = Text::new("Id:").prompt().unwrap_or_default().parse::<u32>();
-                match handle_done(todo_list, id.unwrap()) {
-                    Ok(msg) => println!("{}", msg),
-                    Err(e) => println!("Error: {}", e),
+                match id {
+                    Ok(id) => match handle_done(todo_list, id) {
+                        Ok(msg) => println!("{}", msg),
+                        Err(e) => println!("Error: {}", e),
+                    },
+                    Err(_) => println!("Error: invalid id"),
                 }
             }
             "remove" => {
-                // TODO(human): handle_remove を実装する
+                let id = Text::new("Id:").prompt().unwrap_or_default().parse::<u32>();
+                match id {
+                    Ok(id) => match handle_remove(todo_list, id) {
+                        Ok(msg) => println!("{}", msg),
+                        Err(e) => println!("Error: {}", e),
+                    },
+                    Err(_) => println!("Error: invalid id"),
+                }
             }
             "save" => match todo_list.save() {
                 Ok(_) => println!("Saved."),
@@ -408,7 +418,7 @@ mod tests {
                 title: String::from("taskB"),
                 completed: false,
             }],
-            next_id: 2,
+            next_id: 3,
             file_path: String::from("./test-file.txt"),
         };
 
@@ -456,4 +466,23 @@ mod tests {
     }
 
     // TODO(human): test_handle_add_returns_error_message_when_empty_title を実装する
+
+    #[test]
+    fn test_handle_done_returns_success_message() {
+        let mut todo_list = TodoList::new(String::from("./test-file.txt"));
+
+        let result_add = handle_add(&mut todo_list, String::from("taskA"));
+        let result_done = handle_done(&mut todo_list, 1);
+        assert_eq!(Ok(String::from("Task completed: 1")), result_done);
+    }
+
+    #[test]
+    fn test_handle_remove_id_1_success_message() {
+        let mut todo_list = TodoList::new(String::from("./test-file.txt"));
+
+        let result_add = handle_add(&mut todo_list, String::from("taskA"));
+        let result_remove = handle_remove(&mut todo_list, 1);
+
+        assert_eq!(Ok(String::from("Task remove: 1")), result_remove);
+    }
 }
