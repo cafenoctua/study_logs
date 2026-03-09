@@ -421,7 +421,7 @@ jobs:
       # PRコメント（PRトリガー時のみ）
       - name: Post build results
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -589,7 +589,7 @@ jobs:
 
       - name: Post lint results
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -825,7 +825,7 @@ jobs:
 
       - name: Post evaluator results
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
