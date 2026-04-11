@@ -825,7 +825,7 @@ impl HttpResponse {
     fn parse(response: &str) -> Result<Self, ParseError> {
         // TODO: 実装
         // 形式:
-        // HTTP/1.1 200 OK
+        // HTTP/.1 200 OK
         // Content-Type: text/plain
         // Content-Length: 13
         //
