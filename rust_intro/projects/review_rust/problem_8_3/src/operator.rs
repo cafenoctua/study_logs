@@ -1,8 +1,8 @@
-use std::str::FromStr;
 use crate::error::CalcError;
+use std::str::FromStr;
 
-#[derive(Debug, PartialEq)]
-pub enum  Operator{
+#[derive(Debug, PartialEq, Clone)]
+pub enum Operator {
     Add,
     Subtract,
     Multiply,
@@ -24,7 +24,15 @@ impl FromStr for Operator {
 }
 
 impl Operator {
-    pub fn calculate(&self, a: i32, b: i32) -> Result<i32, CalcError>{
+    /// 演算子の優先度を返す（大きいほど優先）
+    pub fn precedence(&self) -> u8 {
+        match self {
+            Operator::Add | Operator::Subtract => 1,
+            Operator::Multiply | Operator::Divide => 2,
+        }
+    }
+
+    pub fn calculate(&self, a: i32, b: i32) -> Result<i32, CalcError> {
         match self {
             Operator::Add => Ok(a + b),
             Operator::Subtract => Ok(a - b),
