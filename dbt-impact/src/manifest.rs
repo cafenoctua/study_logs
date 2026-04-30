@@ -10,7 +10,7 @@ pub struct Manifest {
     pub child_map: HashMap<String, Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Node {
     unique_id: String,
     name: String,
