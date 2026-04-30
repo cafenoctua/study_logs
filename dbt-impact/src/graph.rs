@@ -1,11 +1,12 @@
 // mod manifest {
 //     use Manifest;
 // }
-use crate::manifest::Manifest;
-use std::collections::HashMap;
+use crate::manifest::{Manifest, Node};
+use std::{collections::HashMap, fmt::Write};
 
 #[derive(Debug)]
 pub struct DependencyGraph {
+    nodes: HashMap<String, Node>,
     parent_map: HashMap<String, Vec<String>>,
     child_map: HashMap<String, Vec<String>>,
 }
@@ -13,18 +14,32 @@ pub struct DependencyGraph {
 impl DependencyGraph {
     pub fn from_manifest(manifest: &Manifest) -> Self {
         Self {
+            nodes: manifest.nodes.clone(),
             parent_map: manifest.parent_map.clone(),
             child_map: manifest.child_map.clone(),
         }
     }
 
+    fn resolve_node_id(&self, name: &str, nodes: &HashMap<String, Node>) -> Option<String> {
+        nodes
+            .keys()
+            .filter(|k| k.ends_with(&format!(".{}", name)))
+            .next()
+            .cloned()
+    }
+
     fn bfs(
         &self,
-        root: &str,
+        name: &str,
         depth: Option<usize>,
         map: &HashMap<String, Vec<String>>,
     ) -> Vec<(String, usize)> {
         use std::collections::{HashSet, VecDeque};
+
+        let root = match self.resolve_node_id(&name, &self.nodes) {
+            Some(id) => id,
+            None => return vec![],
+        };
 
         let mut visited = HashSet::new();
         let mut queue = VecDeque::new();
