@@ -2,7 +2,7 @@
 //     use Manifest;
 // }
 use crate::manifest::{Manifest, Node};
-use std::{collections::HashMap, fmt::Write};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct DependencyGraph {
