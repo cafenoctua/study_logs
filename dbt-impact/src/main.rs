@@ -1,3 +1,4 @@
+mod error;
 mod graph;
 mod manifest;
 mod output;
@@ -50,7 +51,13 @@ fn main() {
             format,
         } => {
             let path = Path::new(&manifest);
-            let manifest = Manifest::load(path).unwrap();
+            let manifest = match Manifest::load(path) {
+                Ok(m) => m,
+                Err(e) => {
+                    eprintln!("エラー: {}", e);
+                    std::process::exit(1);
+                }
+            };
             let graph = DependencyGraph::from_manifest(&manifest);
             let result = graph.downstream(&model, depth);
             let formatter: Box<dyn Formatter> = match format.as_str() {
@@ -68,7 +75,13 @@ fn main() {
             format,
         } => {
             let path = Path::new(&manifest);
-            let manifest = Manifest::load(path).unwrap();
+            let manifest = match Manifest::load(path) {
+                Ok(m) => m,
+                Err(e) => {
+                    eprintln!("エラー: {}", e);
+                    std::process::exit(1);
+                }
+            };
             let graph = DependencyGraph::from_manifest(&manifest);
             let result = graph.upstream(&model, depth);
             let formatter: Box<dyn Formatter> = match format.as_str() {
