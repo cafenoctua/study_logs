@@ -1,7 +1,10 @@
 // mod manifest {
 //     use Manifest;
 // }
-use crate::manifest::{Manifest, Node};
+use crate::{
+    error::ImpactError,
+    manifest::{Manifest, Node},
+};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -20,12 +23,13 @@ impl DependencyGraph {
         }
     }
 
-    fn resolve_node_id(&self, name: &str, nodes: &HashMap<String, Node>) -> Option<String> {
-        nodes
+    fn resolve_node_id(&self, name: &str) -> Result<String, ImpactError> {
+        self.nodes
             .keys()
             .filter(|k| k.ends_with(&format!(".{}", name)))
             .next()
             .cloned()
+            .ok_or_else(|| ImpactError::ModelNotFound(name.to_string()))
     }
 
     fn bfs(
@@ -36,9 +40,12 @@ impl DependencyGraph {
     ) -> Vec<(String, usize)> {
         use std::collections::{HashSet, VecDeque};
 
-        let root = match self.resolve_node_id(&name, &self.nodes) {
-            Some(id) => id,
-            None => return vec![],
+        let root = match self.resolve_node_id(&name) {
+            Ok(id) => id,
+            Err(e) => {
+                eprintln!("エラー: {}", e);
+                std::process::exit(1);
+            }
         };
 
         let mut visited = HashSet::new();

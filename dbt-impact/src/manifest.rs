@@ -2,6 +2,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
 
+use crate::error::ImpactError;
+
 #[derive(Debug, Deserialize)]
 pub struct Manifest {
     pub nodes: HashMap<String, Node>,
@@ -25,8 +27,9 @@ pub struct Source {
 }
 
 impl Manifest {
-    pub fn load(path: &Path) -> Result<Manifest, Box<dyn std::error::Error>> {
-        let file = std::fs::File::open(path)?;
+    pub fn load(path: &Path) -> Result<Manifest, ImpactError> {
+        let file = std::fs::File::open(path)
+            .map_err(|_| ImpactError::ManifestNotFound(path.to_path_buf()))?;
         let manifest = serde_json::from_reader(file)?;
         Ok(manifest)
     }
