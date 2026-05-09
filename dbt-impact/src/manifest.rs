@@ -34,3 +34,14 @@ impl Manifest {
         Ok(manifest)
     }
 }
+
+#[cfg(test)]
+impl Node {
+    pub fn new(unique_id: &str, name: &str, resource_type: &str) -> Self {
+        Self {
+            unique_id: unique_id.to_string(),
+            name: name.to_string(),
+            resource_type: resource_type.to_string(),
+        }
+    }
+}

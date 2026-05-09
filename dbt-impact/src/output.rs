@@ -63,3 +63,46 @@ impl Formatter for JsonFormatter {
         serde_json::to_string_pretty(&ids).unwrap()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn sample_nodes() -> Vec<(String, usize)> {
+        vec![
+            ("model.project.root".to_string(), 0),
+            ("model.project.child_a".to_string(), 1),
+            ("model.project.child_b".to_string(), 1),
+        ]
+    }
+
+    #[test]
+    fn test_list_contains_all_nodes() {
+        let output = ListFormatter.format("root", &sample_nodes());
+        assert!(output.contains("model.project.child_a"));
+        assert!(output.contains("model.project.child_b"));
+    }
+
+    #[test]
+    fn test_tree_symbol() {
+        let output = TreeFormatter.format("root", &sample_nodes());
+        assert!(output.contains("├──"));
+        assert!(output.contains("└──"));
+    }
+
+    #[test]
+    fn test_tree_last_node_uses_end_symbol() {
+        let output = TreeFormatter.format("root", &sample_nodes());
+        let last_line = output.lines().last().unwrap();
+        assert!(last_line.contains("└──"));
+    }
+
+    #[test]
+    fn test_json_is_array() {
+        let output = JsonFormatter.format("root", &sample_nodes());
+        let first_line = output.lines().next().unwrap();
+        let last_line = output.lines().last().unwrap();
+        assert!(first_line.contains("["));
+        assert!(last_line.contains("]"));
+    }
+}
