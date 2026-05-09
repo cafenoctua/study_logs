@@ -12,6 +12,19 @@ pub struct DependencyGraph {
 }
 
 impl DependencyGraph {
+    /// Manifest 構造体を受け取ってそれを幅優先探索で使えるように DependencyGraph構造体を返す。
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use dbt_impact::manifest::Manifest;
+    /// use std::path::Path;
+    /// use dbt_impact::graph::DependencyGraph;
+    ///
+    /// let manifest = Manifest::load(Path::new("manifest.json")).unwrap();
+    /// let graph = DependencyGraph::from_manifest(&manifest);
+    /// assert!(manifest.nodes.len() > 1);
+    ///
     pub fn from_manifest(manifest: &Manifest) -> Self {
         Self {
             nodes: manifest.nodes.clone(),

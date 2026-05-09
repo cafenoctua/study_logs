@@ -27,6 +27,17 @@ pub struct Source {
 }
 
 impl Manifest {
+    /// manifest.json を読み込んで Manifest 構造体を返す。
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use dbt_impact::manifest::Manifest;
+    /// use std::path::Path;
+    ///
+    /// let manifest = Manifest::load(Path::new("manifest.json")).unwrap();
+    /// assert!(manifest.nodes.len() > 0);
+    ///
     pub fn load(path: &Path) -> Result<Manifest, ImpactError> {
         let file = std::fs::File::open(path)
             .map_err(|_| ImpactError::ManifestNotFound(path.to_path_buf()))?;
