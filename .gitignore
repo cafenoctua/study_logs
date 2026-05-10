@@ -4,3 +4,6 @@
 .terraform/
 **/.terraform/
 *.log
+
+# Claude Code セッションログ（個人の学習記録）
+.claude/session/
