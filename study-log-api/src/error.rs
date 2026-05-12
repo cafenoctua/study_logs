@@ -9,6 +9,8 @@ use serde_json::json;
 pub enum AppError {
     #[error("データベースエラー： {0}")]
     Database(#[from] sqlx::Error),
+    #[error("マイグレーションエラー: {0}")]
+    Migrate(#[from] sqlx::migrate::MigrateError),
     #[error("ファイルが見つかりません：　{0}")]
     FileNotFound(String),
     #[error("ログが見つかりません： id={0}")]
@@ -20,6 +22,7 @@ impl IntoResponse for AppError {
         let message = self.to_string();
         let status = match self {
             AppError::LogNotFound(_) => StatusCode::NOT_FOUND,
+            AppError::Migrate(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::FileNotFound(_) => StatusCode::NOT_FOUND,
             AppError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
