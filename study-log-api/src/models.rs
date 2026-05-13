@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 #[derive(Debug, FromRow)]
@@ -30,4 +30,17 @@ impl From<SessionRow> for SessionDetail {
             scanned_at: row.scanned_at,
         }
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct SessionSummary {
+    pub id: i64,
+    pub title: String,
+    pub date: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LogsQuery {
+    pub date: Option<String>,
+    pub keyword: Option<String>,
 }

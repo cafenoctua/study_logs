@@ -1,11 +1,11 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     Json,
 };
 
 use crate::error::AppError;
-use crate::models::{SessionDetail, SessionRow};
-use sqlx::SqlitePool;
+use crate::models::{LogsQuery, SessionDetail, SessionRow, SessionSummary};
+use sqlx::{QueryBuilder, SqlitePool};
 
 pub async fn get_by_id(
     State(pool): State<SqlitePool>,
@@ -16,4 +16,29 @@ pub async fn get_by_id(
         .await?
         .ok_or(AppError::LogNotFound(id))?;
     Ok(Json(row.into()))
+}
+
+pub async fn list(
+    State(pool): State<SqlitePool>,
+    Query(params): Query<LogsQuery>,
+) -> Result<Json<Vec<SessionSummary>>, AppError> {
+    let mut qb = QueryBuilder::new("SELECT id, title, date FROM sessions WHERE 1=1");
+    if let Some(d) = &params.date {
+        qb.push(" AND date = ").push_bind(d);
+    }
+    if let Some(kw) = &params.keyword {
+        qb.push(" AND content LIKE ").push_bind(format!("%{}%", kw));
+    }
+    let rows = qb.build_query_as::<SessionRow>().fetch_all(&pool).await?;
+
+    let summaries = rows
+        .into_iter()
+        .map(|r| SessionSummary {
+            id: r.id,
+            title: r.title,
+            date: r.date,
+        })
+        .collect::<Vec<_>>();
+
+    Ok(Json(summaries))
 }

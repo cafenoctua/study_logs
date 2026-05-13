@@ -13,6 +13,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", get(|| async { "ok" }))
+        .route("/logs", get(handlers::logs::list))
         .route("/logs/{id}", get(handlers::logs::get_by_id))
         .with_state(pool);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
