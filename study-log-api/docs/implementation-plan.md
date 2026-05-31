@@ -233,3 +233,97 @@ curl http://localhost:3000/logs/1
 # テスト実行
 cargo test
 ```
+
+## テストケース設計
+
+### テスト方針
+
+- DBを使うテストは `sqlx::test` を使いインメモリSQLiteで実行する
+- ファイルIOを使うテストは `tempfile` クレートで一時ディレクトリを作成する
+- ロジックのみのテスト（`parse_checkbox` など）は純粋なユニットテストで行う
+
+### Cargo.toml への追加
+
+```toml
+[dev-dependencies]
+tempfile = "3"
+```
+
+### テストケース一覧
+
+#### scanner::parse_checkbox（ユニットテスト）
+
+| テストケース | 入力 | 期待値 |
+|---|---|---|
+| 完了済みチェックボックス | `"- [x] async/await"` | `Some("async/await")` |
+| 未完了チェックボックス | `"- [ ] async/await"` | `Some("async/await")` |
+| チェックボックスでない行 | `"## セクション名"` | `None` |
+| 空行 | `""` | `None` |
+| URLを含む行 | `"- [x] https://example.com"` | `Some("https://example.com")` |
+
+#### scanner::scan_topics（統合テスト）
+
+| テストケース | 内容 |
+|---|---|
+| 完了・未完了が混在するファイルをスキャンしてカウントが正しいか | `- [x]` 2行・`- [ ]` 1行 → `topics_upserted = 3` |
+| 同じファイルを2回スキャンしても件数が増えないか（upsert確認） | 2回スキャン後も `COUNT(*) = 3` |
+| チェックボックスのない行はスキップされるか | 見出し行・本文行を混在させて件数が変わらないか |
+
+#### scanner::scan_sessions（統合テスト）
+
+| テストケース | 内容 |
+|---|---|
+| `.md` ファイルが正しくDBに登録されるか | 一時ディレクトリに `.md` を1つ作成してスキャン → `sessions_upserted = 1` |
+| `.md` 以外のファイルはスキップされるか | `.txt` ファイルを混在させて件数が変わらないか |
+| title・date が正しく抽出されるか | `# Rust 学習ログ: 2026-05-14` → `title` と `date` が正しく保存されているか |
+| 同じファイルを2回スキャンしても件数が増えないか（upsert確認） | 2回スキャン後も `COUNT(*) = 1` |
+
+#### GET /logs（ハンドラテスト）
+
+| テストケース | 内容 |
+|---|---|
+| パラメータなしで全件返るか | DBに2件登録 → `GET /logs` で2件返る |
+| `?keyword=` フィルタが効くか | `content` に "async" を含む1件だけ返るか |
+| `?date=` フィルタが効くか | 日付が一致する1件だけ返るか |
+
+#### GET /logs/{id}（ハンドラテスト）
+
+| テストケース | 内容 |
+|---|---|
+| 存在するIDで200が返るか | DBに登録したIDでリクエスト → 正しいデータが返る |
+| 存在しないIDで404が返るか | 存在しないID=999 → `{"error": "..."}` と404 |
+
+### テストコードの骨格
+
+```rust
+// scanner.rs 内の #[cfg(test)] ブロック
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ユニットテスト（DBもファイルも不要）
+    #[test]
+    fn test_parse_checkbox_completed() {
+        assert_eq!(parse_checkbox("- [x] async/await"), Some("async/await"));
+    }
+
+    #[test]
+    fn test_parse_checkbox_incomplete() {
+        assert_eq!(parse_checkbox("- [ ] async/await"), Some("async/await"));
+    }
+
+    #[test]
+    fn test_parse_checkbox_non_checkbox() {
+        assert_eq!(parse_checkbox("## セクション"), None);
+    }
+
+    // 統合テスト（インメモリDB使用）
+    #[sqlx::test]
+    async fn test_scan_topics_counts(pool: SqlitePool) {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(file.path(), "- [x] topic1\n- [ ] topic2\n## header\n").unwrap();
+        let count = scan_topics(&pool, file.path()).await.unwrap();
+        assert_eq!(count, 2);
+    }
+}
+```

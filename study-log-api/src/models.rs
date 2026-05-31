@@ -32,7 +32,7 @@ impl From<SessionRow> for SessionDetail {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct SessionSummary {
     pub id: i64,
     pub title: String,
@@ -43,4 +43,17 @@ pub struct SessionSummary {
 pub struct LogsQuery {
     pub date: Option<String>,
     pub keyword: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SummaryResponse {
+    pub total_sessions: i64,
+    pub total_topics: i64,
+    pub completed_topics: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ScanResult {
+    pub sessions_upserted: i64,
+    pub topics_upserted: i64,
 }
