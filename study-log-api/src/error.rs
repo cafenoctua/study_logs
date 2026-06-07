@@ -15,6 +15,8 @@ pub enum AppError {
     FileNotFound(String),
     #[error("ログが見つかりません： id={0}")]
     LogNotFound(i64),
+    #[error("IOエラー: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 impl IntoResponse for AppError {
@@ -25,6 +27,7 @@ impl IntoResponse for AppError {
             AppError::Migrate(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::FileNotFound(_) => StatusCode::NOT_FOUND,
             AppError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         (status, Json(json!({ "error": message }))).into_response()
     }
