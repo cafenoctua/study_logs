@@ -7,3 +7,12 @@
 
 # Claude Code セッションログ（個人の学習記録）
 .claude/session/
+# 環境変数・APIキー
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
