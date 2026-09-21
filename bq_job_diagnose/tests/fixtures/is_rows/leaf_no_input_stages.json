@@ -1,0 +1,91 @@
+{
+  "job_id": "job_leaf_no_input_stages_001",
+  "parent_job_id": null,
+  "project_id": "my-project",
+  "user_email": "frank@example.com",
+  "creation_time": "2026-09-18T06:00:00+00:00",
+  "start_time": "2026-09-18T06:00:01+00:00",
+  "end_time": "2026-09-18T06:00:10+00:00",
+  "job_type": "QUERY",
+  "statement_type": "SELECT",
+  "priority": "INTERACTIVE",
+  "state": "DONE",
+  "error_result": null,
+  "has_error": false,
+  "cache_hit": false,
+  "total_bytes_processed": 1000000,
+  "total_bytes_billed": 1048576,
+  "total_slot_ms": 2000,
+  "elapsed_ms": 9000,
+  "reservation_id": null,
+  "edition": null,
+  "resource_warning": null,
+  "normalized_literals_hash": "leafhash01",
+  "performance_insights": null,
+  "referenced_table_count": 1,
+  "query": "SELECT * FROM t1",
+  "referenced_tables": [
+    {"project_id": "my-project", "dataset_id": "ds1", "table_id": "t1"}
+  ],
+  "destination_table": null,
+  "labels": [],
+  "dml_statistics": null,
+  "job_stages": [
+    {
+      "id": 0,
+      "name": "S00: Input",
+      "status": "COMPLETE",
+      "start_ms": 0,
+      "end_ms": 500,
+      "wait_ms_avg": 10,
+      "wait_ms_max": 20,
+      "read_ms_avg": 100,
+      "read_ms_max": 150,
+      "compute_ms_avg": 50,
+      "compute_ms_max": 60,
+      "write_ms_avg": 20,
+      "write_ms_max": 25,
+      "shuffle_output_bytes": 1024,
+      "shuffle_output_bytes_spilled": 0,
+      "records_read": 100,
+      "records_written": 100,
+      "parallel_inputs": 1,
+      "completed_parallel_inputs": 1,
+      "slot_ms": 500,
+      "compute_mode": "BIGQUERY",
+      "steps": [
+        {"kind": "READ", "substeps": ["t1"]}
+      ]
+    },
+    {
+      "id": 1,
+      "name": "S01: Output",
+      "status": "COMPLETE",
+      "start_ms": 500,
+      "end_ms": 900,
+      "input_stages": [0],
+      "wait_ms_avg": 5,
+      "wait_ms_max": 10,
+      "read_ms_avg": 50,
+      "read_ms_max": 60,
+      "compute_ms_avg": 20,
+      "compute_ms_max": 25,
+      "write_ms_avg": 100,
+      "write_ms_max": 120,
+      "shuffle_output_bytes": 512,
+      "shuffle_output_bytes_spilled": 0,
+      "records_read": 100,
+      "records_written": 100,
+      "parallel_inputs": 1,
+      "completed_parallel_inputs": 1,
+      "slot_ms": 400,
+      "compute_mode": "BIGQUERY",
+      "steps": [
+        {"kind": "OUTPUT", "substeps": []}
+      ]
+    }
+  ],
+  "timeline": [
+    {"elapsed_ms": 900, "total_slot_ms": 2000, "pending_units": 0, "completed_units": 2, "active_units": 0, "estimated_runnable_units": 0}
+  ]
+}

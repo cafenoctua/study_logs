@@ -1,0 +1,101 @@
+{
+  "job_id": "job_skewed_join_001",
+  "parent_job_id": null,
+  "project_id": "my-project",
+  "user_email": "alice@example.com",
+  "creation_time": "2026-09-13T01:00:00+00:00",
+  "start_time": "2026-09-13T01:00:01+00:00",
+  "end_time": "2026-09-13T01:00:45+00:00",
+  "job_type": "QUERY",
+  "statement_type": "SELECT",
+  "priority": "INTERACTIVE",
+  "state": "DONE",
+  "error_result": null,
+  "has_error": false,
+  "cache_hit": false,
+  "total_bytes_processed": 123456789,
+  "total_bytes_billed": 134217728,
+  "total_slot_ms": "4212000",
+  "elapsed_ms": 44000,
+  "reservation_id": "my-reservation",
+  "edition": "ENTERPRISE",
+  "resource_warning": null,
+  "normalized_literals_hash": "abc123hash",
+  "performance_insights": null,
+  "referenced_table_count": 2,
+  "query": "SELECT a.x, b.y FROM t1 a JOIN t2 b ON a.id = b.id",
+  "referenced_tables": [
+    {"project_id": "my-project", "dataset_id": "ds1", "table_id": "t1"},
+    {"project_id": "my-project", "dataset_id": "ds1", "table_id": "t2"}
+  ],
+  "destination_table": null,
+  "labels": [
+    {"key": "team", "value": "data-platform"},
+    {"key": "env", "value": "prod"}
+  ],
+  "dml_statistics": null,
+  "job_stages": [
+    {
+      "id": "0",
+      "name": "S00: Input",
+      "status": "COMPLETE",
+      "start_ms": "0",
+      "end_ms": "1200",
+      "wait_ms_avg": "10",
+      "wait_ms_max": "20",
+      "read_ms_avg": "300",
+      "read_ms_max": "400",
+      "compute_ms_avg": "100",
+      "compute_ms_max": "150",
+      "write_ms_avg": "50",
+      "write_ms_max": "60",
+      "shuffle_output_bytes": "1048576",
+      "shuffle_output_bytes_spilled": "0",
+      "records_read": "1000000",
+      "records_written": "1000000",
+      "parallel_inputs": "10",
+      "completed_parallel_inputs": "10",
+      "slot_ms": "5000",
+      "compute_mode": "BIGQUERY",
+      "steps": [
+        {"kind": "READ", "substeps": ["t1", "FROM ds1.t1"]}
+      ]
+    },
+    {
+      "id": "1",
+      "name": "S01: Join+Aggregate",
+      "status": "COMPLETE",
+      "start_ms": "1200",
+      "end_ms": "42000",
+      "input_stages": ["0"],
+      "wait_ms_avg": "200",
+      "wait_ms_max": "500",
+      "read_ms_avg": "1000",
+      "read_ms_max": "1200",
+      "compute_ms_avg": "800",
+      "compute_ms_max": "16000",
+      "write_ms_avg": "300",
+      "write_ms_max": "350",
+      "shuffle_output_bytes": "2097152",
+      "shuffle_output_bytes_spilled": "0",
+      "records_read": "1000000",
+      "records_written": "500000",
+      "parallel_inputs": "20",
+      "completed_parallel_inputs": "20",
+      "slot_ms": "4200000",
+      "compute_mode": "BIGQUERY",
+      "steps": [
+        {"kind": "JOIN", "substeps": ["JOIN EACH WITH EACH", "$1:a.id = $2:b.id"]},
+        {"kind": "AGGREGATE", "substeps": ["GROUP BY a.x"]}
+      ]
+    }
+  ],
+  "timeline": [
+    {"elapsed_ms": "1000", "total_slot_ms": "500", "pending_units": "20", "completed_units": "0", "active_units": "5", "estimated_runnable_units": "5"},
+    {"elapsed_ms": "6000", "total_slot_ms": "300000", "pending_units": "15", "completed_units": "5", "active_units": "10", "estimated_runnable_units": "10"},
+    {"elapsed_ms": "12000", "total_slot_ms": "900000", "pending_units": "10", "completed_units": "10", "active_units": "10", "estimated_runnable_units": "10"},
+    {"elapsed_ms": "20000", "total_slot_ms": "1800000", "pending_units": "6", "completed_units": "14", "active_units": "10", "estimated_runnable_units": "10"},
+    {"elapsed_ms": "30000", "total_slot_ms": "3000000", "pending_units": "2", "completed_units": "18", "active_units": "8", "estimated_runnable_units": "8"},
+    {"elapsed_ms": "44000", "total_slot_ms": "4212000", "pending_units": "0", "completed_units": "20", "active_units": "0", "estimated_runnable_units": "0"}
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "jobReference": {
+    "jobId": "job_leaf_no_input_stages_001",
+    "projectId": "my-project",
+    "location": "us"
+  },
+  "configuration": {
+    "jobType": "QUERY",
+    "dryRun": false,
+    "query": {
+      "query": "SELECT a.x FROM t1 a",
+      "priority": "INTERACTIVE"
+    }
+  },
+  "status": {
+    "state": "DONE",
+    "errorResult": null
+  },
+  "statistics": {
+    "creationTime": "1789261200000",
+    "startTime": "1789261201000",
+    "endTime": "1789261210000",
+    "totalSlotMs": "1000",
+    "query": {
+      "statementType": "SELECT",
+      "cacheHit": false,
+      "totalBytesProcessed": "1000",
+      "totalBytesBilled": "1048576",
+      "queryPlan": [
+        {
+          "name": "S00: Input",
+          "id": "0",
+          "status": "COMPLETE",
+          "startMs": "0",
+          "endMs": "500",
+          "waitMsAvg": "5",
+          "waitMsMax": "5",
+          "readMsAvg": "100",
+          "readMsMax": "120",
+          "computeMsAvg": "50",
+          "computeMsMax": "60",
+          "writeMsAvg": "20",
+          "writeMsMax": "25",
+          "shuffleOutputBytes": "1024",
+          "shuffleOutputBytesSpilled": "0",
+          "recordsRead": "1000",
+          "recordsWritten": "1000",
+          "parallelInputs": "1",
+          "completedParallelInputs": "1",
+          "slotMs": "100",
+          "steps": [
+            {"kind": "READ", "substeps": ["t1", "FROM ds1.t1"]}
+          ]
+        },
+        {
+          "name": "S01: Output",
+          "id": "1",
+          "status": "COMPLETE",
+          "startMs": "500",
+          "endMs": "1000",
+          "inputStages": ["0"],
+          "waitMsAvg": "5",
+          "waitMsMax": "5",
+          "readMsAvg": "50",
+          "readMsMax": "50",
+          "computeMsAvg": "30",
+          "computeMsMax": "30",
+          "writeMsAvg": "10",
+          "writeMsMax": "10",
+          "shuffleOutputBytes": "0",
+          "shuffleOutputBytesSpilled": "0",
+          "recordsRead": "1000",
+          "recordsWritten": "1000",
+          "parallelInputs": "1",
+          "completedParallelInputs": "1",
+          "slotMs": "50",
+          "steps": [
+            {"kind": "WRITE", "substeps": []}
+          ]
+        }
+      ]
+    }
+  }
+}

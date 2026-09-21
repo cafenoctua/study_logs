@@ -1,0 +1,66 @@
+{
+  "job_id": "job_spill_heavy_001",
+  "parent_job_id": null,
+  "project_id": "my-project",
+  "user_email": "bob@example.com",
+  "creation_time": "2026-09-14T02:00:00+00:00",
+  "start_time": "2026-09-14T02:00:02+00:00",
+  "end_time": "2026-09-14T02:05:00+00:00",
+  "job_type": "QUERY",
+  "statement_type": "SELECT",
+  "priority": "INTERACTIVE",
+  "state": "DONE",
+  "error_result": null,
+  "has_error": false,
+  "cache_hit": false,
+  "total_bytes_processed": 987654321098,
+  "total_bytes_billed": 987654321098,
+  "total_slot_ms": 90000000,
+  "elapsed_ms": 298000,
+  "reservation_id": null,
+  "edition": null,
+  "resource_warning": null,
+  "normalized_literals_hash": "spillhash01",
+  "performance_insights": null,
+  "referenced_table_count": 1,
+  "query": "SELECT * FROM huge_table ORDER BY some_col",
+  "referenced_tables": [
+    {"project_id": "my-project", "dataset_id": "ds1", "table_id": "huge_table"}
+  ],
+  "destination_table": null,
+  "labels": [],
+  "dml_statistics": null,
+  "job_stages": [
+    {
+      "id": 0,
+      "name": "S00: Sort",
+      "status": "COMPLETE",
+      "start_ms": 0,
+      "end_ms": 280000,
+      "input_stages": [],
+      "wait_ms_avg": 100,
+      "wait_ms_max": 200,
+      "read_ms_avg": 5000,
+      "read_ms_max": 6000,
+      "compute_ms_avg": 20000,
+      "compute_ms_max": 25000,
+      "write_ms_avg": 250000,
+      "write_ms_max": 270000,
+      "shuffle_output_bytes": 10737418240,
+      "shuffle_output_bytes_spilled": 5368709120,
+      "records_read": 500000000,
+      "records_written": 500000000,
+      "parallel_inputs": 100,
+      "completed_parallel_inputs": 100,
+      "slot_ms": 90000000,
+      "compute_mode": "BIGQUERY",
+      "steps": [
+        {"kind": "SORT", "substeps": ["ORDER BY some_col"]}
+      ]
+    }
+  ],
+  "timeline": [
+    {"elapsed_ms": 1000, "total_slot_ms": 100000, "pending_units": 100, "completed_units": 0, "active_units": 50, "estimated_runnable_units": 50},
+    {"elapsed_ms": 298000, "total_slot_ms": 90000000, "pending_units": 0, "completed_units": 100, "active_units": 0, "estimated_runnable_units": 0}
+  ]
+}

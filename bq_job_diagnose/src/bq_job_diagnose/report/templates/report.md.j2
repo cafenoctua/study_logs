@@ -1,0 +1,92 @@
+# BigQuery ジョブ診断レポート
+
+- 生成日時: {{ generated_at }}
+- 設定ダイジェスト: `{{ config_digest }}`
+- モード: {{ mode }}
+- スキーマバージョン: {{ schema_version }}
+
+{% if mode == "scan" and scan_summary %}
+## スキャン結果（TopN）
+
+| job_id | project_id | statement_type | 指標 |
+|---|---|---|---|
+{% for row in scan_summary.get("top_n", []) %}
+| {{ row.get("job_id", "") }} | {{ row.get("project_id", "") }} | {{ row.get("statement_type", "") }} | {{ row.get("rank_value", "") }} |
+{% endfor %}
+
+{% endif %}
+{% for job_entry in jobs %}
+{% set job = job_entry["job"] %}
+{% set cost = job_entry["cost"] %}
+---
+
+## ジョブ: {{ job.job_id }}
+
+- プロジェクト: {{ job.project_id }}
+- ロケーション: {{ job.location }}
+- statement_type: {{ job.statement_type if job.statement_type else "(なし)" }}
+- 状態: {{ job.state }}
+- 経過時間: {{ job.elapsed_ms if job.elapsed_ms is not none else "不明" }} ms
+- 作成日時: {{ job.creation_time }}
+
+### コスト
+
+| 課金モデル | 金額 | 算出根拠 | 単価 | 備考 |
+|---|---|---|---|---|
+| on-demand | {% if cost.on_demand.amount is not none %}{{ "%.4f"|format(cost.on_demand.amount) }} {{ cost.on_demand.currency }}{% else %}{{ cost.on_demand.unavailable_reason }}{% endif %} | {% if cost.on_demand.basis_value is not none %}{{ cost.on_demand.basis_value }} {{ cost.on_demand.basis_unit }}{% else %}(なし){% endif %} | {{ cost.on_demand.unit_price }}（{{ cost.on_demand.price_ref }}） | - |
+| editions{% if cost.editions.edition %} ({{ cost.editions.edition }}){% endif %} | {% if cost.editions.amount is not none %}{{ "%.4f"|format(cost.editions.amount) }} {{ cost.editions.currency }}{% else %}{{ cost.editions.unavailable_reason }}{% endif %} | {% if cost.editions.basis_value is not none %}{{ cost.editions.basis_value }} {{ cost.editions.basis_unit }}{% else %}(なし){% endif %} | {{ cost.editions.unit_price }}（{{ cost.editions.price_ref }}） | Editions の金額はコミットメント割引を反映しない上限見積です |
+
+- 実際に使われた課金モデル: {{ cost.actual_model }}
+{% if cost.cheaper_model %}
+- 安価なモデル: {{ cost.cheaper_model }}（削減率 {{ "%.1f%%"|format(cost.savings_ratio * 100) }}）
+{% endif %}
+
+### 所見
+
+{% if job_entry.finding_groups %}
+{% for group in job_entry.finding_groups %}
+#### {{ group.label }}
+
+{% for finding in group.findings %}
+##### {{ finding.title }} (`{{ finding.rule_id }}`)
+
+{{ finding.summary }}
+{% if finding.confidence != "high" %}
+
+confidence: {{ finding.confidence }}
+{% endif %}
+
+{% if finding.evidence %}
+| 項目 | 値 | 単位 | ステージ | 閾値 |
+|---|---|---|---|---|
+{% for ev in finding.evidence %}
+| {{ ev.label }} | {{ ev.value }} | {{ ev.unit if ev.unit is not none else "-" }} | {{ ev.stage_id if ev.stage_id is not none else "-" }} | {{ ev.threshold if ev.threshold is not none else "-" }} |
+{% endfor %}
+{% endif %}
+
+{% if finding.doc_url %}
+参考: [{{ finding.doc_url }}]({{ finding.doc_url }})
+{% if finding.doc_quote %}
+> {{ finding.doc_quote }}
+{% endif %}
+{% endif %}
+
+{% endfor %}
+{% endfor %}
+{% else %}
+所見はありませんでした。
+
+{% endif %}
+### 評価できなかった項目
+
+{% if job_entry.skipped_rules %}
+| ルール ID | 理由 |
+|---|---|
+{% for skip in job_entry.skipped_rules %}
+| {{ skip.rule_id }} | {{ skip.reason }} |
+{% endfor %}
+{% else %}
+なし
+{% endif %}
+
+{% endfor %}

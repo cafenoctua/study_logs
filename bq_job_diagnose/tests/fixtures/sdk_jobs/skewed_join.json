@@ -1,0 +1,107 @@
+{
+  "jobReference": {
+    "jobId": "job_skewed_join_001",
+    "projectId": "my-project",
+    "location": "asia-northeast1"
+  },
+  "user_email": "alice@example.com",
+  "configuration": {
+    "jobType": "QUERY",
+    "dryRun": false,
+    "labels": {
+      "team": "data-platform",
+      "env": "prod"
+    },
+    "query": {
+      "query": "SELECT a.x, b.y FROM t1 a JOIN t2 b ON a.id = b.id",
+      "priority": "INTERACTIVE",
+      "destinationTable": null
+    }
+  },
+  "status": {
+    "state": "DONE",
+    "errorResult": null
+  },
+  "statistics": {
+    "creationTime": "1789261200000",
+    "startTime": "1789261201000",
+    "endTime": "1789261245000",
+    "totalSlotMs": "4212000",
+    "reservation_id": "my-reservation",
+    "edition": "ENTERPRISE",
+    "query": {
+      "statementType": "SELECT",
+      "cacheHit": false,
+      "totalBytesProcessed": "123456789",
+      "totalBytesBilled": "134217728",
+      "referencedTables": [
+        {"projectId": "my-project", "datasetId": "ds1", "tableId": "t1"},
+        {"projectId": "my-project", "datasetId": "ds1", "tableId": "t2"}
+      ],
+      "queryPlan": [
+        {
+          "name": "S00: Input",
+          "id": "0",
+          "status": "COMPLETE",
+          "startMs": "0",
+          "endMs": "1200",
+          "waitMsAvg": "10",
+          "waitMsMax": "20",
+          "readMsAvg": "300",
+          "readMsMax": "400",
+          "computeMsAvg": "100",
+          "computeMsMax": "150",
+          "writeMsAvg": "50",
+          "writeMsMax": "60",
+          "shuffleOutputBytes": "1048576",
+          "shuffleOutputBytesSpilled": "0",
+          "recordsRead": "1000000",
+          "recordsWritten": "1000000",
+          "parallelInputs": "10",
+          "completedParallelInputs": "10",
+          "slotMs": "5000",
+          "computeMode": "BIGQUERY",
+          "steps": [
+            {"kind": "READ", "substeps": ["t1", "FROM ds1.t1"]}
+          ]
+        },
+        {
+          "name": "S01: Join+Aggregate",
+          "id": "1",
+          "status": "COMPLETE",
+          "startMs": "1200",
+          "endMs": "42000",
+          "inputStages": ["0"],
+          "waitMsAvg": "200",
+          "waitMsMax": "500",
+          "readMsAvg": "1000",
+          "readMsMax": "1200",
+          "computeMsAvg": "800",
+          "computeMsMax": "16000",
+          "writeMsAvg": "300",
+          "writeMsMax": "350",
+          "shuffleOutputBytes": "2097152",
+          "shuffleOutputBytesSpilled": "0",
+          "recordsRead": "1000000",
+          "recordsWritten": "500000",
+          "parallelInputs": "20",
+          "completedParallelInputs": "20",
+          "slotMs": "4200000",
+          "computeMode": "BIGQUERY",
+          "steps": [
+            {"kind": "JOIN", "substeps": ["JOIN EACH WITH EACH", "$1:a.id = $2:b.id"]},
+            {"kind": "AGGREGATE", "substeps": ["GROUP BY a.x"]}
+          ]
+        }
+      ],
+      "timeline": [
+        {"elapsedMs": "1000", "totalSlotMs": "500", "pendingUnits": "20", "completedUnits": "0", "activeUnits": "5", "estimatedRunnableUnits": "5"},
+        {"elapsedMs": "6000", "totalSlotMs": "300000", "pendingUnits": "15", "completedUnits": "5", "activeUnits": "10", "estimatedRunnableUnits": "10"},
+        {"elapsedMs": "12000", "totalSlotMs": "900000", "pendingUnits": "10", "completedUnits": "10", "activeUnits": "10", "estimatedRunnableUnits": "10"},
+        {"elapsedMs": "20000", "totalSlotMs": "1800000", "pendingUnits": "6", "completedUnits": "14", "activeUnits": "10", "estimatedRunnableUnits": "10"},
+        {"elapsedMs": "30000", "totalSlotMs": "3000000", "pendingUnits": "2", "completedUnits": "18", "activeUnits": "8", "estimatedRunnableUnits": "8"},
+        {"elapsedMs": "44000", "totalSlotMs": "4212000", "pendingUnits": "0", "completedUnits": "20", "activeUnits": "0", "estimatedRunnableUnits": "0"}
+      ]
+    }
+  }
+}

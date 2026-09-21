@@ -7,3 +7,6 @@
 
 # Claude Code セッションログ（個人の学習記録）
 .claude/session/
+
+# bq-job-diagnose 作業用 worktree
+bq-job-diagnose-wt/

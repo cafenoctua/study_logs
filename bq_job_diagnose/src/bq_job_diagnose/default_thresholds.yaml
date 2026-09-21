@@ -1,0 +1,143 @@
+# bq-job-diagnose のデフォルト閾値定義。
+#
+# ここに書かれた値は「経験則としての初期値」であり、絶対的な正解ではない。
+# 組織のワークロード特性（データ量・SLA・予算感）に応じて、ユーザーが独自の
+# YAML ファイルで上書きすることを前提としている（config.load_thresholds の
+# path 引数でディープマージされる）。
+#
+# version はこのファイルのスキーマバージョン。フィールドの意味や構造を破壊的に
+# 変更した場合はインクリメントし、古い version を指すユーザー設定を
+# load_thresholds() がエラーとして弾く。
+
+version: 1
+
+global:
+  # ステージ単体の所要時間がこれ未満なら「無視してよいノイズ」として
+  # 多くのルールがスキップする（短時間ステージのスキューや spill は
+  # 誤検知になりやすいため）。
+  min_stage_duration_ms: 1000
+  # ジョブ全体の経過時間がこれ未満なら、そもそも診断する価値が薄いとみなし
+  # 多くのルールをスキップする。
+  min_job_elapsed_ms: 10000
+
+skew:
+  # 最遅ワーカーの compute_ms が平均の何倍かで警告を出す。
+  # 4.0 = 最遅ワーカーが平均の4倍かかっている状態。
+  # 並列度が N のとき、理想的には全ワーカーがほぼ同時に終わるはずなので、
+  # 4倍のスキューはおおよそ「並列度の 3/4 が遊んでいる」計算に相当し、
+  # 実質的な並列度低下として無視できないレベル。
+  ratio_warning: 4.0
+  # 10倍のスキューは、ほぼ1ワーカーがボトルネックになっている状態で、
+  # 並列化のメリットがほとんど失われている。critical とする。
+  ratio_critical: 10.0
+  # compute_ms_max がこれ未満なら、スキュー比率が高くても実害が小さい
+  # （絶対時間が短いノイズ）とみなしてスキップする。
+  min_compute_ms_max: 5000
+  # ステージ全体（wait+read+compute+write の合計相当）に占める compute の
+  # 割合がこれ未満なら、compute のスキューよりも他要因（IO待ちなど）が
+  # 支配的と考え、スキュー検出の優先度を下げる。
+  min_compute_share_of_stage: 0.3
+
+shuffle:
+  # spill（シャッフル出力のディスクあふれ）は BigQuery 内部の動的な挙動に
+  # 依存し、同じクエリでも再実行のたびに発生有無が変わりうる非決定的な
+  # シグナルのため、常に advisory（参考情報）として扱い critical/warning
+  # には昇格させない。
+  spill_always_advisory: true
+  # spill バイト数がこの値以上なら「言及に値する」規模とみなす（1 GiB）。
+  spill_bytes_notable: 1073741824
+  # シャッフル出力バイト数がこの値以上なら警告対象とする（100 GiB）。
+  # 大規模シャッフルはネットワーク・スロットコストの両面で問題になりやすい。
+  output_bytes_warning: 107374182400
+
+filter:
+  # records_written / records_read がこの比率未満なら、フィルタ効率が
+  # 極端に悪い（ほぼ全件読んでほぼ全件捨てている）とみなし critical とする。
+  efficiency_critical: 0.01
+  # 同様に、この比率未満なら warning とする。
+  efficiency_warning: 0.10
+  # records_read がこの件数未満なら、フィルタ効率が悪くても絶対量が小さく
+  # 実害が乏しいとみなしスキップする。
+  min_records_read: 10000000
+
+slot:
+  # estimated_runnable_units がこの値未満の状態が続くと、スロットが
+  # 余っていても使い切れていない（並列化不足）可能性を示す。
+  runnable_units_threshold: 100
+  # 上記の状態が連続何サンプル続いたら異常とみなすか。
+  # 単発のディップはノイズとして無視する。
+  consecutive_samples: 10
+  # completed_units の増加率がこの値未満なら「進捗がほぼ止まっている」
+  # とみなす（0.05 = 直近区間でほぼ5%未満の増加）。
+  max_completed_growth_ratio: 0.05
+  # ジョブ全体に占める wait 時間の割合がこれ以上なら warning。
+  wait_share_warning: 0.30
+  # 同、これ以上なら critical。
+  wait_share_critical: 0.60
+
+join:
+  # 片側の入力バイト数がこの値以上だとブロードキャスト結合が非効率になりうる
+  # 目安（1 GiB）。
+  broadcast_input_bytes_warning: 1073741824
+  # 出力レコード数が入力レコード数の何倍を超えたら「カーディナリティ爆発
+  # （デカルト積に近い結合）」の疑いありとみなすか。
+  cardinality_explosion_ratio: 10.0
+  # 出力レコード数がこれ未満なら、カーディナリティ爆発があっても実害が
+  # 小さいとみなしスキップする。
+  min_output_records: 1000000
+
+pricing:
+  # 以下の単価は 2026-09 時点の一般的な参考値であり、実際の契約単価
+  # （割引・コミットメント等）とは異なる場合がある。
+  # ユーザーは自身の契約に基づいて必ず上書きすること。
+  as_of: "2026-09"
+  currency: USD
+  # オンデマンド課金: スキャンした TiB あたりの単価。
+  on_demand_price_per_tib: 6.25
+  # Editions（Standard/Enterprise/Enterprise Plus）のスロット時間単価。
+  # エディションごとに単価が異なり、同じスロット時間でもコストが変わる。
+  editions_price_per_slot_hour:
+    STANDARD: 0.04
+    ENTERPRISE: 0.06
+    ENTERPRISE_PLUS: 0.10
+  # edition 情報がジョブから取得できない場合に、コスト試算の代表値として
+  # 使うエディション（中間的な Enterprise を既定値とする）。
+  default_edition_for_estimate: ENTERPRISE
+
+cost:
+  # オンデマンド換算コストがこの金額（USD）以上なら warning。
+  on_demand_amount_warning: 6.0
+  # 同、この金額以上なら critical。
+  on_demand_amount_critical: 60.0
+  # Editions 換算コストの warning/critical も同水準に設定。
+  editions_amount_warning: 6.0
+  editions_amount_critical: 60.0
+  # 課金モデル（オンデマンド vs Editions）を切り替えた場合の推定節約率が
+  # これ以上なら「モデルの見直しを推奨」する。
+  model_mismatch_savings_ratio: 0.30
+  # total_bytes_billed / total_bytes_processed がこの比率を超えたら、
+  # 最小課金単位（切り上げ）の影響が大きいとみなし言及する。
+  billed_over_processed_ratio: 2.0
+  # total_bytes_billed がこの値未満なら、上記比率が高くても絶対額が
+  # 小さいためスキップする（100 MiB）。
+  min_bytes_billed_for_ratio: 104857600
+  # 同一クエリ（正規化済みハッシュ単位）の実行回数がこれ以上なら
+  # 「繰り返しクエリ」として集計対象にする。
+  repeated_query_min_count: 20
+  # 繰り返しクエリの合計コストがこの金額（USD）以上なら警告する。
+  repeated_query_total_amount: 50.0
+
+plan_shape:
+  # __repartition__ を含むステージ数がこれ以上あると、シャッフルの
+  # 再分割が多発している（プラン形状の非効率）とみなす目安。
+  repartition_min_stages: 3
+  # __coalesce__ を含むステージ数についても同様。
+  coalesce_min_stages: 3
+
+scan:
+  # scan コマンドのデフォルト表示件数。
+  default_top_n: 20
+  # scan コマンドのデフォルト遡及期間（日数）。
+  default_lookback_days: 7
+  # scan コマンドのデフォルトのランキング基準列。
+  default_rank_by: slot_ms
