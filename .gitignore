@@ -7,3 +7,11 @@
 
 # Claude Code セッションログ（個人の学習記録）
 .claude/session/
+
+# 環境変数・APIキー
+.env
+.env.*
+!.env.example
+
+# git worktree の作業ディレクトリ
+*-wt/
