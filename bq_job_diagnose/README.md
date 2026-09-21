@@ -177,17 +177,30 @@ pricing:
 
 ### 登録方法
 
-このリポジトリのルート（`bq-job-diagnose-wt/`）に `.mcp.json` が同梱されている。
+MCP の登録はマシン固有の絶対パスを含むため、リポジトリにはコミットしない
+（`.mcp.json` をリポジトリに置くと他の環境で必ず壊れる）。
+ユーザースコープに登録する。
+
+```bash
+claude mcp add --scope user bq-job-diagnose -- \
+  $(which uv) --directory /path/to/study_logs/bq_job_diagnose run bq-job-diagnose-mcp
+```
+
+`uv` は絶対パスで指定すること。MCP サーバーはホストの子プロセスとして
+起動するためシェルの `PATH` を継承せず、`uv` のままでは解決できないことがある。
+
+Claude Desktop の場合は `~/Library/Application Support/Claude/claude_desktop_config.json`
+の `mcpServers` に追記する（既存の登録を壊さないよう追記のみ行う）。
 
 ```json
 {
   "mcpServers": {
     "bq-job-diagnose": {
       "type": "stdio",
-      "command": "uv",
+      "command": "/opt/homebrew/bin/uv",
       "args": [
         "--directory",
-        "/Users/watanabeburuno/codes/study_logs/bq-job-diagnose-wt/bq_job_diagnose",
+        "/path/to/study_logs/bq_job_diagnose",
         "run",
         "bq-job-diagnose-mcp"
       ]
@@ -195,6 +208,10 @@ pricing:
   }
 }
 ```
+
+認証は ADC（`gcloud auth application-default login`）を利用する。
+MCP サーバーは最小の環境変数で起動されるため、ADC が設定済みであることを
+事前に確認しておくこと。
 
 Claude Desktop など他のホストで使う場合は、上記と同じ内容をそのホストの MCP サーバー設定に追加する。`uv run bq-job-diagnose-mcp` を単体で起動すると stdio トランスポートで待機する（`Ctrl+C` で終了）。
 
