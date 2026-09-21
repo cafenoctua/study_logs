@@ -171,6 +171,49 @@ pricing:
 
 **Editions 側の試算はコミットメント割引を反映しない上限見積である。** 実際の契約でコミットメント割引を受けている場合、実コストはこの試算より低くなる。`cost.model_mismatch` finding の `confidence` が `medium` に固定されているのはこのためで、単発ジョブの試算からリザベーション設計を断定すべきではない（最終判断は `/bq-diagnose` Skill 側の推論に委ねる）。
 
+## MCP サーバー
+
+同じ診断パイプライン（収集 → ルール実行 → コスト試算 → レポート生成）を MCP（Model Context Protocol）ツールとして公開する `bq-job-diagnose-mcp` サーバーを同梱している。CLI とロジックを共有しており、MCP サーバー側で診断ロジックを再実装してはいない。
+
+### 登録方法
+
+このリポジトリのルート（`bq-job-diagnose-wt/`）に `.mcp.json` が同梱されている。
+
+```json
+{
+  "mcpServers": {
+    "bq-job-diagnose": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/watanabeburuno/codes/study_logs/bq-job-diagnose-wt/bq_job_diagnose",
+        "run",
+        "bq-job-diagnose-mcp"
+      ]
+    }
+  }
+}
+```
+
+Claude Desktop など他のホストで使う場合は、上記と同じ内容をそのホストの MCP サーバー設定に追加する。`uv run bq-job-diagnose-mcp` を単体で起動すると stdio トランスポートで待機する（`Ctrl+C` で終了）。
+
+### 提供する 3 ツール
+
+| ツール | CLI の対応コマンド | 説明 |
+|---|---|---|
+| `diagnose_job(job_id, project, region="us", created_on=None)` | `job` | 単一ジョブを深掘り診断する。権限・保持期間の問題があれば `jobs.get` へ自動フォールバックする（`job` コマンドと同じ挙動）。 |
+| `scan_jobs(project, region="us", since_days=7, top_n=20, rank_by="slot_ms")` | `scan` | 期間内の TopN ジョブを一覧する。`bigquery.jobs.listAll` が必須で、`jobs.get` へはフォールバックしない（構造的に不可能なため）。 |
+| `drill_jobs(project, region="us", since_days=7, top_n=5)` | `drill` | TopN のジョブそれぞれに対してフル診断を行う。 |
+
+各ツールは `build_json_report()` が生成するのと同じ JSON dict（`schema_version` が先頭キー）を返す。CLI の `--format json` 出力と同一のスキーマ。
+
+### MCP Apps UI（重要な注意）
+
+3 ツールはいずれも `ui://bq-job-diagnose/report.html`（単一の自己完結 HTML、外部リソース参照なし）という MCP Apps UI に紐づいている。UI は TopN テーブル（ソート可能・行クリックでジョブ詳細に遷移）とジョブ詳細（重大度別の所見、コスト試算表、ステージ表、「評価できなかった項目」）を表示する。
+
+**Claude Code はツールの呼び出しはできるが、MCP Apps UI を描画しない。** UI を実際に見るには Claude Desktop / Claude web / VS Code Copilot など、MCP Apps 拡張に対応したホストを使うこと。Claude Code から使う場合はツールが返す JSON をそのまま読むことになる（UI が無くても同じ情報は JSON に含まれている）。
+
 ## 開発向け
 
 ```bash

@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>bq-job-diagnose レポート</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --bg-elevated: #f6f7f9;
+    --border: #e2e4e8;
+    --text: #1a1d21;
+    --text-muted: #656b76;
+    --accent: #2563eb;
+    --critical: #b91c1c;
+    --critical-bg: #fef2f2;
+    --warning: #92400e;
+    --warning-bg: #fffbeb;
+    --advisory: #1d4ed8;
+    --advisory-bg: #eff6ff;
+    --info: #3f4756;
+    --info-bg: #f3f4f6;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181d;
+      --bg-elevated: #1e2127;
+      --border: #33373f;
+      --text: #e6e8eb;
+      --text-muted: #9aa1ac;
+      --accent: #60a5fa;
+      --critical: #fca5a5;
+      --critical-bg: #3a1414;
+      --warning: #fcd34d;
+      --warning-bg: #3a2c0c;
+      --advisory: #93c5fd;
+      --advisory-bg: #10203a;
+      --info: #c7cbd1;
+      --info-bg: #24272e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181d;
+    --bg-elevated: #1e2127;
+    --border: #33373f;
+    --text: #e6e8eb;
+    --text-muted: #9aa1ac;
+    --accent: #60a5fa;
+    --critical: #fca5a5;
+    --critical-bg: #3a1414;
+    --warning: #fcd34d;
+    --warning-bg: #3a2c0c;
+    --advisory: #93c5fd;
+    --advisory-bg: #10203a;
+    --info: #c7cbd1;
+    --info-bg: #24272e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Hiragino Sans, "Noto Sans JP", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 16px;
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+  h1, h2, h3 { margin: 0 0 8px 0; }
+  h1 { font-size: 16px; }
+  h2 { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 20px; }
+  .muted { color: var(--text-muted); }
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 13px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  th { cursor: pointer; user-select: none; color: var(--text-muted); font-weight: 600; }
+  th:hover { color: var(--text); }
+  th .arrow { font-size: 10px; margin-left: 2px; opacity: .6; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .sev-critical { color: var(--critical); background: var(--critical-bg); }
+  .sev-warning { color: var(--warning); background: var(--warning-bg); }
+  .sev-advisory { color: var(--advisory); background: var(--advisory-bg); }
+  .sev-info { color: var(--info); background: var(--info-bg); }
+  .finding {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+  .finding-title { font-weight: 600; margin-bottom: 4px; }
+  .finding-summary { margin: 4px 0; }
+  .evidence-list { margin: 6px 0 0 0; padding-left: 18px; font-size: 12px; color: var(--text-muted); }
+  .back-link {
+    display: inline-block;
+    margin-bottom: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px 0;
+    font-size: 13px;
+  }
+  .section { margin-bottom: 16px; }
+  .empty-note { color: var(--text-muted); font-style: italic; }
+  .cost-table td:first-child { color: var(--text-muted); }
+  .badge-source {
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 6px;
+    margin-left: 6px;
+  }
+  #status { color: var(--text-muted); padding: 24px 4px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="status">読み込み中...</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------------
+  // ユーティリティ
+  // ---------------------------------------------------------------------
+
+  function fmt(value) {
+    // I2: null/undefined は "-" として表示する。0 を "-" にしてはならない。
+    if (value === null || value === undefined) return "-";
+    if (typeof value === "number") {
+      if (Number.isInteger(value)) return value.toLocaleString("ja-JP");
+      return value.toLocaleString("ja-JP", { maximumFractionDigits: 3 });
+    }
+    if (typeof value === "boolean") return value ? "true" : "false";
+    return String(value);
+  }
+
+  function fmtBytes(value) {
+    if (value === null || value === undefined) return "-";
+    return fmt(value) + " B";
+  }
+
+  function fmtMs(value) {
+    if (value === null || value === undefined) return "-";
+    return fmt(value) + " ms";
+  }
+
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    if (attrs) {
+      for (const k in attrs) {
+        if (k === "class") node.className = attrs[k];
+        else if (k === "text") node.textContent = attrs[k];
+        else if (k.startsWith("on") && typeof attrs[k] === "function") {
+          node.addEventListener(k.slice(2), attrs[k]);
+        } else {
+          node.setAttribute(k, attrs[k]);
+        }
+      }
+    }
+    (children || []).forEach((c) => {
+      if (c === null || c === undefined) return;
+      node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return node;
+  }
+
+  const SEV_LABEL = {
+    critical: "critical（重大）",
+    warning: "warning（警告）",
+    advisory: "advisory（助言）",
+    info: "info（情報）",
+  };
+  const SEV_ORDER = ["critical", "warning", "advisory", "info"];
+
+  // ---------------------------------------------------------------------
+  // レンダリング: TopN テーブル（scan / drill）
+  // ---------------------------------------------------------------------
+
+  let currentSort = { key: "total_slot_ms", dir: "desc" };
+
+  function renderScanTable(root, rows, onRowClick) {
+    root.innerHTML = "";
+    root.appendChild(el("h1", { text: "bq-job-diagnose: TopN ジョブ" }));
+
+    if (!rows || rows.length === 0) {
+      root.appendChild(el("div", { class: "empty-note", text: "対象ジョブがありません。" }));
+      return;
+    }
+
+    const columns = [
+      { key: "job_id", label: "job_id", num: false },
+      { key: "statement_type", label: "statement_type", num: false },
+      { key: "total_slot_ms", label: "slot_ms", num: true },
+      { key: "total_bytes_billed", label: "billed bytes", num: true },
+      { key: "elapsed_ms", label: "elapsed", num: true },
+      { key: "cache_hit", label: "cache", num: false },
+      { key: "user_email", label: "user", num: false },
+    ];
+
+    function sortedRows() {
+      const copy = rows.slice();
+      const { key, dir } = currentSort;
+      copy.sort((a, b) => {
+        let av = a[key];
+        let bv = b[key];
+        if (av === null || av === undefined) av = dir === "asc" ? Infinity : -Infinity;
+        if (bv === null || bv === undefined) bv = dir === "asc" ? Infinity : -Infinity;
+        if (typeof av === "string" || typeof bv === "string") {
+          av = String(av);
+          bv = String(bv);
+          return dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+        }
+        return dir === "asc" ? av - bv : bv - av;
+      });
+      return copy;
+    }
+
+    const wrap = el("div", { class: "table-wrap" });
+    const table = el("table");
+    const thead = el("thead");
+    const headRow = el("tr");
+    columns.forEach((col) => {
+      const arrow =
+        currentSort.key === col.key ? (currentSort.dir === "asc" ? "▲" : "▼") : "";
+      const th = el(
+        "th",
+        {
+          onclick: () => {
+            if (currentSort.key === col.key) {
+              currentSort.dir = currentSort.dir === "asc" ? "desc" : "asc";
+            } else {
+              currentSort = { key: col.key, dir: "desc" };
+            }
+            renderScanTable(root, rows, onRowClick);
+          },
+        },
+        [col.label, el("span", { class: "arrow", text: arrow })]
+      );
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = el("tbody");
+    sortedRows().forEach((row) => {
+      const tr = el("tr", { onclick: () => onRowClick(row.job_id) });
+      columns.forEach((col) => {
+        let text;
+        if (col.key === "total_bytes_billed") text = fmtBytes(row[col.key]);
+        else if (col.key === "elapsed_ms" || col.key === "total_slot_ms") text = fmtMs(row[col.key]);
+        else if (col.key === "cache_hit") text = row[col.key] === null || row[col.key] === undefined ? "-" : row[col.key] ? "hit" : "miss";
+        else text = fmt(row[col.key]);
+        tr.appendChild(el("td", { class: col.num ? "num" : "" }, [text]));
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    root.appendChild(wrap);
+  }
+
+  // ---------------------------------------------------------------------
+  // レンダリング: ジョブ詳細
+  // ---------------------------------------------------------------------
+
+  function renderFindingsBySeverity(root, findings) {
+    root.appendChild(el("h2", { text: "所見（重大度別）" }));
+    const grouped = {};
+    SEV_ORDER.forEach((s) => (grouped[s] = []));
+    (findings || []).forEach((f) => {
+      const sev = grouped[f.severity] ? f.severity : "info";
+      grouped[sev].push(f);
+    });
+
+    let any = false;
+    SEV_ORDER.forEach((sev) => {
+      const list = grouped[sev];
+      if (list.length === 0) return;
+      any = true;
+      const section = el("div", { class: "section" });
+      section.appendChild(
+        el("div", { class: "pill sev-" + sev, text: SEV_LABEL[sev] + " (" + list.length + ")" })
+      );
+      list.forEach((f) => {
+        const card = el("div", { class: "finding" });
+        card.appendChild(el("div", { class: "finding-title", text: f.title || f.rule_id }));
+        card.appendChild(el("div", { class: "muted", text: "rule_id: " + f.rule_id }));
+        card.appendChild(el("div", { class: "finding-summary", text: f.summary || "" }));
+        if (f.evidence && f.evidence.length > 0) {
+          const ul = el("ul", { class: "evidence-list" });
+          f.evidence.forEach((ev) => {
+            const parts = [ev.label + ": " + fmt(ev.value) + (ev.unit ? " " + ev.unit : "")];
+            if (ev.threshold !== null && ev.threshold !== undefined) {
+              parts.push("（閾値: " + fmt(ev.threshold) + "）");
+            }
+            ul.appendChild(el("li", { text: parts.join(" ") }));
+          });
+          card.appendChild(ul);
+        }
+        section.appendChild(card);
+      });
+      root.appendChild(section);
+    });
+
+    if (!any) {
+      root.appendChild(
+        el("div", { class: "empty-note", text: "検出された所見はありません。" })
+      );
+    }
+  }
+
+  function renderCostTable(root, cost) {
+    root.appendChild(el("h2", { text: "コスト試算（on-demand / Editions）" }));
+    if (!cost) {
+      root.appendChild(el("div", { class: "empty-note", text: "コスト試算情報がありません。" }));
+      return;
+    }
+    const wrap = el("div", { class: "table-wrap" });
+    const table = el("table", { class: "cost-table" });
+    const tbody = el("tbody");
+
+    function row(label, value) {
+      tbody.appendChild(el("tr", {}, [el("td", { text: label }), el("td", { text: value })]));
+    }
+
+    row("実際の課金モデル", fmt(cost.actual_model));
+
+    [
+      ["on_demand", "on-demand"],
+      ["editions", "Editions"],
+    ].forEach(([key, label]) => {
+      const est = cost[key];
+      if (!est) {
+        row(label + " 試算額", "-");
+        return;
+      }
+      const amountText =
+        est.amount === null || est.amount === undefined
+          ? "試算不能" + (est.unavailable_reason ? "（" + est.unavailable_reason + "）" : "")
+          : fmt(est.amount) + " " + (est.currency || "");
+      row(label + " 試算額", amountText + (est.is_upper_bound ? "（上限見積）" : ""));
+      row(label + " price_ref", fmt(est.price_ref));
+      if (est.basis_value !== null && est.basis_value !== undefined) {
+        row(label + " 基準値", fmt(est.basis_value) + " " + (est.basis_unit || ""));
+      }
+    });
+
+    row("より安い課金モデル", fmt(cost.cheaper_model));
+    row("削減率", cost.savings_ratio === null || cost.savings_ratio === undefined ? "-" : fmt(cost.savings_ratio));
+
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    root.appendChild(wrap);
+    root.appendChild(
+      el("div", {
+        class: "muted",
+        text:
+          "注: Editions の試算はコミットメント割引やオートスケーラーの挙動を反映しない上限見積です。",
+      })
+    );
+  }
+
+  function renderStageTable(root, stages) {
+    root.appendChild(el("h2", { text: "ステージ" }));
+    if (!stages || stages.length === 0) {
+      root.appendChild(el("div", { class: "empty-note", text: "ステージ情報がありません（プラン未取得）。" }));
+      return;
+    }
+    const wrap = el("div", { class: "table-wrap" });
+    const table = el("table");
+    const thead = el("thead");
+    thead.appendChild(
+      el("tr", {}, [
+        el("th", { text: "id" }),
+        el("th", { text: "name" }),
+        el("th", { text: "duration" }),
+        el("th", { text: "compute avg" }),
+        el("th", { text: "compute max" }),
+        el("th", { text: "records read" }),
+        el("th", { text: "records written" }),
+        el("th", { text: "spilled" }),
+      ])
+    );
+    table.appendChild(thead);
+    const tbody = el("tbody");
+    stages.forEach((s) => {
+      const duration =
+        s.start_ms !== null && s.start_ms !== undefined && s.end_ms !== null && s.end_ms !== undefined
+          ? fmtMs(s.end_ms - s.start_ms)
+          : "-";
+      tbody.appendChild(
+        el("tr", {}, [
+          el("td", { text: fmt(s.id) }),
+          el("td", { text: fmt(s.name) }),
+          el("td", { class: "num", text: duration }),
+          el("td", { class: "num", text: fmtMs(s.compute_ms_avg) }),
+          el("td", { class: "num", text: fmtMs(s.compute_ms_max) }),
+          el("td", { class: "num", text: fmt(s.records_read) }),
+          el("td", { class: "num", text: fmt(s.records_written) }),
+          el("td", { class: "num", text: fmtBytes(s.shuffle_output_bytes_spilled) }),
+        ])
+      );
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    root.appendChild(wrap);
+  }
+
+  function renderSkipped(root, skipped) {
+    root.appendChild(el("h2", { text: "評価できなかった項目" }));
+    if (!skipped || skipped.length === 0) {
+      root.appendChild(el("div", { class: "empty-note", text: "なし" }));
+      return;
+    }
+    const ul = el("ul");
+    skipped.forEach((s) => {
+      ul.appendChild(el("li", { text: (s.rule_id || "") + ": " + (s.reason || "") }));
+    });
+    root.appendChild(ul);
+  }
+
+  function renderJobDetail(root, jobEntry, onBack) {
+    root.innerHTML = "";
+    const backBtn = el("button", { class: "back-link", onclick: onBack, text: "← 一覧に戻る" });
+    root.appendChild(backBtn);
+
+    const job = jobEntry.job || {};
+    root.appendChild(
+      el("h1", {}, [
+        "ジョブ詳細: " + fmt(job.job_id),
+        el("span", { class: "badge-source", text: fmt(job.source) }),
+      ])
+    );
+    const meta = el("div", { class: "card muted" });
+    meta.appendChild(el("div", { text: "project: " + fmt(job.project_id) + " / location: " + fmt(job.location) }));
+    meta.appendChild(el("div", { text: "statement_type: " + fmt(job.statement_type) + " / state: " + fmt(job.state) }));
+    meta.appendChild(
+      el("div", {
+        text:
+          "total_bytes_billed: " +
+          fmtBytes(job.total_bytes_billed) +
+          " / total_slot_ms: " +
+          fmtMs(job.total_slot_ms) +
+          " / cache_hit: " +
+          fmt(job.cache_hit),
+      })
+    );
+    root.appendChild(meta);
+
+    renderFindingsBySeverity(root, jobEntry.findings);
+    renderCostTable(root, jobEntry.cost);
+    renderStageTable(root, job.stages);
+    renderSkipped(root, jobEntry.skipped_rules);
+  }
+
+  // ---------------------------------------------------------------------
+  // データ取得: postMessage 経由でホストからのツール結果を受け取る
+  // ---------------------------------------------------------------------
+
+  let latestReport = null;
+
+  function extractStructuredContent(payload) {
+    if (!payload) return null;
+    if (payload.structuredContent) return payload.structuredContent;
+    if (payload.result && payload.result.structuredContent) return payload.result.structuredContent;
+    if (payload.content && Array.isArray(payload.content)) {
+      for (const item of payload.content) {
+        if (item && item.type === "text") {
+          try {
+            return JSON.parse(item.text);
+          } catch (e) {
+            /* テキストが JSON でなければ無視 */
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function renderReport(report) {
+    latestReport = report;
+    const app = document.getElementById("app");
+    app.innerHTML = "";
+
+    if (!report) {
+      app.appendChild(el("div", { id: "status", text: "レポートデータがありません。" }));
+      return;
+    }
+
+    if (report.mode === "job") {
+      const entry = report.jobs && report.jobs[0];
+      if (!entry) {
+        app.appendChild(el("div", { class: "empty-note", text: "ジョブ情報がありません。" }));
+        return;
+      }
+      renderJobDetail(app, entry, () => renderReport(report));
+      return;
+    }
+
+    // scan / drill: TopN テーブル。行クリックでジョブ詳細（jobs 配列にあれば）。
+    const rows = (report.scan_summary && report.scan_summary.rows) || [];
+    const jobsByld = {};
+    (report.jobs || []).forEach((entry) => {
+      if (entry.job && entry.job.job_id) jobsByld[entry.job.job_id] = entry;
+    });
+
+    renderScanTable(app, rows, (jobId) => {
+      const entry = jobsByld[jobId];
+      if (entry) {
+        renderJobDetail(app, entry, () => renderReport(report));
+      } else {
+        renderJobDetail(
+          app,
+          { job: { job_id: jobId }, findings: [], skipped_rules: [], cost: null },
+          () => renderReport(report)
+        );
+      }
+    });
+  }
+
+  function handleIncomingMessage(event) {
+    const data = event && event.data;
+    if (!data) return;
+
+    // ui/notifications/tool-result 形式、または tools/call の応答形式のどちらも許容する。
+    if (data.method === "ui/notifications/tool-result" && data.params) {
+      const sc = data.params.structuredContent || extractStructuredContent(data.params);
+      if (sc) renderReport(sc);
+      return;
+    }
+    const sc = extractStructuredContent(data);
+    if (sc) renderReport(sc);
+  }
+
+  window.addEventListener("message", handleIncomingMessage);
+
+  // ホストにビュー準備完了を伝える（対応していないホストでは無視される）。
+  try {
+    window.parent.postMessage({ jsonrpc: "2.0", method: "ui/ready" }, "*");
+  } catch (e) {
+    /* サンドボックスされた環境では postMessage が失敗することがある */
+  }
+
+  document.getElementById("status").textContent =
+    "ツール結果の到着待ち... （ホストから postMessage でデータが送られると表示が更新されます）";
+})();
+</script>
+</body>
+</html>
