@@ -1,0 +1,277 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-09-21T00:00:00+00:00",
+  "config_digest": "deadbeefcafe",
+  "mode": "job",
+  "jobs": [
+    {
+      "job": {
+        "source": "information_schema",
+        "job_id": "job_skewed_join_001",
+        "project_id": "my-project",
+        "location": "asia-northeast1",
+        "parent_job_id": null,
+        "user_email": "alice@example.com",
+        "creation_time": "2026-09-13T01:00:00+00:00",
+        "start_time": "2026-09-13T01:00:01+00:00",
+        "end_time": "2026-09-13T01:00:45+00:00",
+        "job_type": "QUERY",
+        "statement_type": "SELECT",
+        "priority": "INTERACTIVE",
+        "state": "DONE",
+        "error_result": null,
+        "query": "SELECT a.x, b.y FROM t1 a JOIN t2 b ON a.id = b.id",
+        "cache_hit": false,
+        "total_bytes_processed": 123456789,
+        "total_bytes_billed": 134217728,
+        "total_slot_ms": 4212000,
+        "referenced_tables": [
+          "my-project.ds1.t1",
+          "my-project.ds1.t2"
+        ],
+        "destination_table": null,
+        "labels": {
+          "team": "data-platform",
+          "env": "prod"
+        },
+        "reservation_id": "my-reservation",
+        "edition": "ENTERPRISE",
+        "resource_warning": null,
+        "normalized_literals_hash": "abc123hash",
+        "performance_insights": null,
+        "dml_statistics": null,
+        "plan_availability": "available",
+        "stages": [
+          {
+            "id": 0,
+            "name": "S00: Input",
+            "status": "COMPLETE",
+            "start_ms": 0,
+            "end_ms": 1200,
+            "input_stage_ids": [],
+            "wait_ms_avg": 10,
+            "wait_ms_max": 20,
+            "read_ms_avg": 300,
+            "read_ms_max": 400,
+            "compute_ms_avg": 100,
+            "compute_ms_max": 150,
+            "write_ms_avg": 50,
+            "write_ms_max": 60,
+            "shuffle_output_bytes": 1048576,
+            "shuffle_output_bytes_spilled": 0,
+            "records_read": 1000000,
+            "records_written": 1000000,
+            "parallel_inputs": 10,
+            "completed_parallel_inputs": 10,
+            "slot_ms": 5000,
+            "compute_mode": "BIGQUERY",
+            "steps": [
+              {
+                "kind": "READ",
+                "substeps": [
+                  "t1",
+                  "FROM ds1.t1"
+                ],
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": 1,
+            "name": "S01: Join+Aggregate",
+            "status": "COMPLETE",
+            "start_ms": 1200,
+            "end_ms": 42000,
+            "input_stage_ids": [
+              0
+            ],
+            "wait_ms_avg": 200,
+            "wait_ms_max": 500,
+            "read_ms_avg": 1000,
+            "read_ms_max": 1200,
+            "compute_ms_avg": 800,
+            "compute_ms_max": 16000,
+            "write_ms_avg": 300,
+            "write_ms_max": 350,
+            "shuffle_output_bytes": 2097152,
+            "shuffle_output_bytes_spilled": 0,
+            "records_read": 1000000,
+            "records_written": 500000,
+            "parallel_inputs": 20,
+            "completed_parallel_inputs": 20,
+            "slot_ms": 4200000,
+            "compute_mode": "BIGQUERY",
+            "steps": [
+              {
+                "kind": "JOIN",
+                "substeps": [
+                  "JOIN EACH WITH EACH",
+                  "$1:a.id = $2:b.id"
+                ],
+                "truncated": false
+              },
+              {
+                "kind": "AGGREGATE",
+                "substeps": [
+                  "GROUP BY a.x"
+                ],
+                "truncated": false
+              }
+            ]
+          }
+        ],
+        "timeline": [
+          {
+            "elapsed_ms": 1000,
+            "total_slot_ms": 500,
+            "pending_units": 20,
+            "completed_units": 0,
+            "active_units": 5,
+            "estimated_runnable_units": 5
+          },
+          {
+            "elapsed_ms": 6000,
+            "total_slot_ms": 300000,
+            "pending_units": 15,
+            "completed_units": 5,
+            "active_units": 10,
+            "estimated_runnable_units": 10
+          },
+          {
+            "elapsed_ms": 12000,
+            "total_slot_ms": 900000,
+            "pending_units": 10,
+            "completed_units": 10,
+            "active_units": 10,
+            "estimated_runnable_units": 10
+          },
+          {
+            "elapsed_ms": 20000,
+            "total_slot_ms": 1800000,
+            "pending_units": 6,
+            "completed_units": 14,
+            "active_units": 10,
+            "estimated_runnable_units": 10
+          },
+          {
+            "elapsed_ms": 30000,
+            "total_slot_ms": 3000000,
+            "pending_units": 2,
+            "completed_units": 18,
+            "active_units": 8,
+            "estimated_runnable_units": 8
+          },
+          {
+            "elapsed_ms": 44000,
+            "total_slot_ms": 4212000,
+            "pending_units": 0,
+            "completed_units": 20,
+            "active_units": 0,
+            "estimated_runnable_units": 0
+          }
+        ]
+      },
+      "cost": {
+        "actual_model": "editions",
+        "on_demand": {
+          "model": "on_demand",
+          "amount": 0.000762939453125,
+          "currency": "USD",
+          "basis_value": 134217728,
+          "basis_unit": "bytes_billed",
+          "unit_price": 6.25,
+          "price_ref": "pricing.on_demand_price_per_tib",
+          "edition": null,
+          "unavailable_reason": null,
+          "is_upper_bound": false
+        },
+        "editions": {
+          "model": "editions",
+          "amount": 0.0702,
+          "currency": "USD",
+          "basis_value": 4212000,
+          "basis_unit": "slot_ms",
+          "unit_price": 0.06,
+          "price_ref": "pricing.editions_price_per_slot_hour.ENTERPRISE",
+          "edition": "ENTERPRISE",
+          "unavailable_reason": null,
+          "is_upper_bound": true
+        },
+        "cheaper_model": "on_demand",
+        "savings_ratio": 0.9891319166221509
+      },
+      "findings": [
+        {
+          "rule_id": "skew.compute_time",
+          "title": "ステージ内 compute 時間のスキュー",
+          "severity": "critical",
+          "summary": "ステージ S01: Join+Aggregate は compute_ms の最大値が平均値の 20.00 倍（平均 800ms、最大 16,000ms）",
+          "evidence": [
+            {
+              "label": "compute_skew_ratio",
+              "value": 20.0,
+              "unit": "ratio",
+              "stage_id": 1,
+              "threshold": 4.0
+            },
+            {
+              "label": "compute_ms_avg",
+              "value": 800,
+              "unit": "ms",
+              "stage_id": 1,
+              "threshold": null
+            },
+            {
+              "label": "compute_ms_max",
+              "value": 16000,
+              "unit": "ms",
+              "stage_id": 1,
+              "threshold": null
+            }
+          ],
+          "stage_ids": [
+            1
+          ],
+          "doc_url": "https://cloud.google.com/bigquery/docs/query-plan-explanation",
+          "doc_quote": "for stages where the compute maximum is significantly higher than the compute average, this indicates that the stage spent a disproportionate amount of time processing a few slices of data",
+          "confidence": "high"
+        },
+        {
+          "rule_id": "cost.model_mismatch",
+          "title": "課金モデル間の試算額の差異",
+          "severity": "warning",
+          "summary": "実際の課金モデルは editions。オンデマンド換算 0.000763 USD、Editions 換算 0.0702 USD（on_demand が 98.9% 低い）",
+          "evidence": [
+            {
+              "label": "on_demand_amount",
+              "value": 0.000762939453125,
+              "unit": "USD",
+              "stage_id": null,
+              "threshold": null
+            },
+            {
+              "label": "editions_amount",
+              "value": 0.0702,
+              "unit": "USD",
+              "stage_id": null,
+              "threshold": null
+            },
+            {
+              "label": "savings_ratio",
+              "value": 0.9891319166221509,
+              "unit": "ratio",
+              "stage_id": null,
+              "threshold": 0.3
+            }
+          ],
+          "stage_ids": [],
+          "doc_url": null,
+          "doc_quote": null,
+          "confidence": "medium"
+        }
+      ],
+      "skipped_rules": []
+    }
+  ],
+  "scan_summary": null
+}

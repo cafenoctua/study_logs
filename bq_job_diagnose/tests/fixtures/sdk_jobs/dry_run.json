@@ -1,0 +1,27 @@
+{
+  "jobReference": {
+    "jobId": "job_dry_run_001",
+    "projectId": "my-project",
+    "location": "us"
+  },
+  "configuration": {
+    "jobType": "QUERY",
+    "dryRun": true,
+    "query": {
+      "query": "SELECT * FROM t1",
+      "priority": "INTERACTIVE"
+    }
+  },
+  "status": {
+    "state": "DONE",
+    "errorResult": null
+  },
+  "statistics": {
+    "creationTime": "1789261200000",
+    "query": {
+      "statementType": "SELECT",
+      "totalBytesProcessed": "500",
+      "totalBytesBilled": null
+    }
+  }
+}

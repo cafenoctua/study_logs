@@ -1,0 +1,31 @@
+{
+  "jobReference": {
+    "jobId": "job_no_plan_001",
+    "projectId": "my-project",
+    "location": "us"
+  },
+  "configuration": {
+    "jobType": "QUERY",
+    "dryRun": false,
+    "query": {
+      "query": "SELECT 1",
+      "priority": "INTERACTIVE"
+    }
+  },
+  "status": {
+    "state": "DONE",
+    "errorResult": null
+  },
+  "statistics": {
+    "creationTime": "1789261200000",
+    "startTime": "1789261201000",
+    "endTime": "1789261202000",
+    "totalSlotMs": "10",
+    "query": {
+      "statementType": "SELECT",
+      "cacheHit": false,
+      "totalBytesProcessed": "100",
+      "totalBytesBilled": "0"
+    }
+  }
+}
