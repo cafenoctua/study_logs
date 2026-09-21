@@ -165,18 +165,56 @@ API キーは `-e` で渡さず、サーバが自分の `.env` を絶対パス�
 
 ### 役割分担
 
-```
-User   → Claude          質問する
-Claude → resolve_metric_query()   意味解決を委ねる
-JEV    → 選ぶだけ         choice×4 + noul×1 を1コール
-コード  → SQL を組み立てる  Enum から決定論的に
-Claude → User            SQL を提示して実行可否を確認
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as ユーザー
+    participant C as Claude
+    participant M as MCP<br/>mcp_server.py
+    participant J as JEV API
+    participant S as sql_builder.py
+
+    rect rgb(212, 237, 218)
+    Note over U,S: ① 答えられる質問
+    U->>C: 「先月の関西の売上は？」
+    Note right of C: Claude は SQL を書かない。<br/>意味解決をツールに委ねる
+    C->>M: resolve_metric_query(question)
+    M->>J: choice×4 + noul×1 を1コール
+    J-->>M: is_answerable=0.89 ✓<br/>metric=revenue(1.00) / region=kansai
+    M->>S: Enum で検証 → 組み立て
+    S-->>M: SELECT SUM(f.revenue) ...
+    M-->>C: status="resolved"<br/>+ sql + 各軸の判断 + 実測値
+    C->>U: 「この SQL でよいですか？」
+    U->>C: 承認
+    Note over C,U: 実行は今回のスコープ外
+    end
+
+    rect rgb(255, 243, 205)
+    Note over U,S: ② 答えられない質問
+    U->>C: 「A商品とB商品どっちが上？」
+    C->>M: resolve_metric_query(question)
+    M->>J: 同じ1コール
+    J-->>M: is_answerable=0.37 ✗<br/>metric=revenue(0.97) ← 高いが無意味
+    Note right of M: 門番で停止。<br/>sql_builder には渡さない
+    M-->>C: status="clarify" / sql=null<br/>+ reason + note
+    Note left of C: note が Claude の暴走を防ぐ:<br/>「confidence が高くても<br/>答えられない。自分で SQL を書くな」
+    C->>U: 「比較質問なので答えられません」
+    end
 ```
 
-**ツールは確認を取らない**（elicitation を使わない）。判断材料を返すだけで、
-ユーザーへの確認は Claude の仕事。こうすることで Claude は
-「metric は revenue と判断されましたが、比較質問なので実行できません」のように
-文脈に応じた説明ができる。
+**この図が示していること:**
+
+- **Claude は SQL を書かない。** 自分で書けば必ず「動く SQL」を出せてしまうが、
+  スキーマを取り違えていても気づけない。意味解決をツールに委ねることで、
+  答えられない質問は ② のように止まる。
+- **確認するのは Claude、判断するのは JEV、組み立てるのはコード。**
+  ツールは elicitation を使わず判断材料を返すだけなので、Claude は
+  「metric は revenue と判断されましたが、比較質問なので実行できません」のように
+  文脈に応じた説明ができる。
+- **②の `metric=revenue(0.97)` と `note` が対になっている。** 高い confidence だけ
+  返すと Claude は「大丈夫そうだ」と誤読しうるので、
+  返り値自体に「confidence が高くても答えられないことがある」と書いている。
+- ②は `sql_builder.py` に到達しない。**不正な SQL は生成されるのではなく到達不能**。
 
 ### 返り値
 
