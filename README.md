@@ -19,16 +19,55 @@ JEV は「選ぶ」だけ、SQL の生成には一切関与しない。
 
 ## 設計
 
-```
-質問 → JEV に1コール（全問並列）→ is_answerable で門番 → 分岐
-                                       ├ 0.5 以上 → Enum 経由で SQL 組み立て
-                                       └ 0.5 未満 → 聞き返し
+```mermaid
+flowchart LR
+    Q["「先月の関西の売上は？」<br/>自然言語"]
+
+    subgraph SM["semantic_model.py（唯一の定義源）"]
+        direction TB
+        E["Metric / Grain<br/>Region / Period<br/>(StrEnum)"]
+    end
+
+    subgraph JEV["JEV — 選ぶだけ（1コール・全問並列）"]
+        direction TB
+        C["choice ×4<br/>metric/grain/region/period"]
+        N["noul ×1<br/>is_answerable"]
+    end
+
+    subgraph CODE["コード — 決定論的"]
+        direction TB
+        R{"is_answerable<br/>≧ 0.5 ?"}
+        V["Enum() で検証"]
+        B["sql_builder.py"]
+        CL["聞き返し"]
+    end
+
+    Q --> JEV
+    E -.->|"criteria を導出"| JEV
+    JEV --> R
+    R -->|"Yes"| V
+    R -->|"No"| CL
+    E -.->|"同じ Enum"| V
+    V --> B
+    B --> SQL["SELECT SUM(f.revenue) ...<br/>型安全な SQL"]
+
+    style JEV fill:#fff3cd,stroke:#d39e00
+    style CODE fill:#d4edda,stroke:#28a745
+    style SM fill:#e7e7ff,stroke:#6c6cff
 ```
 
-セマンティックレイヤーの定義（＝答えの選択肢を有限集合として事前に宣言する）と、
-JEV が要求する `criteria` の形が一致する。`semantic_model.py` が唯一の定義源で、
-JEV へ渡す criteria も SQL 組み立ても両方そこから導出されるため、
-「JEV が選べる値」と「SQL が組み立てられる値」が構造的にズレない。
+**この図が示していること:**
+
+- **黄色（JEV）は選ぶだけで、SQL には一切触れない。** JEV は raw string を生成しないので、
+  文字列を作る仕事は構造的に任せられない。
+- **`semantic_model.py` から2本の点線が出ている**のが要。JEV へ渡す criteria と、
+  SQL 組み立て時の検証が**同じ Enum から導出される**ので、
+  「JEV が選べる値」と「SQL が組み立てられる値」がズレようがない。
+  セマンティックレイヤーの定義（＝答えの選択肢を有限集合として事前に宣言する）と、
+  JEV が要求する `criteria` の形が一致するため、この対応付けが成立する。
+- **`is_answerable` が唯一の門番。** 軸ごとの confidence は判定に使わない
+  （理由は次節）。矛盾した質問はここで止まり、SQL 組み立てまで到達しない。
+- 不正な値は `Enum()` で例外になるため、**不正な SQL は生成されるのではなく到達不能**。
 
 ## 実測で分かったこと
 
