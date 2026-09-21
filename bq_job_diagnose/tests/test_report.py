@@ -498,3 +498,89 @@ class TestBuildMarkdownReport:
         )
         md = build_markdown_report(report)
         assert "low" in md
+
+
+class TestScanModeMarkdown:
+    """scan モードの Markdown レンダリング。
+
+    このクラスが存在する理由: scan_summary の "top_n"（要求件数の int）と
+    "rows"（行の配列）を取り違えたテンプレートが、job モードのテストだけ
+    緑だったため実運用まで発覚しなかった（TypeError: 'int' object is not iterable）。
+    """
+
+    def _scan_report(self, rows):
+        return {
+            "schema_version": "1",
+            "generated_at": "2026-09-21T00:00:00+00:00",
+            "config_digest": "abc123456789",
+            "mode": "scan",
+            "jobs": [],
+            "scan_summary": {
+                "start_time": "2026-09-07T00:00:00+00:00",
+                "end_time": "2026-09-21T00:00:00+00:00",
+                "rank_by": "slot_ms",
+                "top_n": 20,
+                "rows": rows,
+            },
+        }
+
+    def _row(self, **over):
+        d = {
+            "job_id": "bquxjob_abc",
+            "statement_type": "SELECT",
+            "total_slot_ms": 4212000,
+            "total_bytes_billed": 134217728,
+            "elapsed_ms": 44000,
+            "cache_hit": False,
+            "user_email": "u@example.com",
+        }
+        d.update(over)
+        return d
+
+    def test_renders_rows_not_top_n_int(self):
+        """top_n(int) を反復しようとして落ちないこと（回帰）。"""
+        md = build_markdown_report(self._scan_report([self._row()]))
+        assert "bquxjob_abc" in md
+        assert "4,212,000" in md
+
+    def test_empty_rows_renders_message(self):
+        md = build_markdown_report(self._scan_report([]))
+        assert "該当するジョブがありませんでした" in md
+
+    def test_none_values_render_as_dash(self):
+        """RLS マスク等で None の列が 0 に見えないこと。"""
+        md = build_markdown_report(
+            self._scan_report([self._row(total_bytes_billed=None, total_slot_ms=None)])
+        )
+        assert "| - |" in md or "| - " in md
+
+    def test_notes_plan_rules_not_evaluated(self):
+        """scan はプランを取らないことを明示していること。"""
+        md = build_markdown_report(self._scan_report([self._row()]))
+        assert "プラン" in md
+
+
+class TestAmountFormatting:
+    """金額表示が桁に応じた精度になること。
+
+    実データで 161 slot_ms のジョブが "0.0000 USD" と表示され、
+    実際は $0.0000027 だった（課金ゼロと誤読される）。
+    """
+
+    def test_fmt_amount_precision_by_magnitude(self):
+        from bq_job_diagnose.report.markdown_report import _fmt_amount
+
+        assert _fmt_amount(None) == "-"
+        assert _fmt_amount(0) == "0.00"
+        assert _fmt_amount(2.683333333333333e-06) == "0.000003"
+        assert "e-" in _fmt_amount(1e-9)  # さらに小さい値は指数表記
+        assert _fmt_amount(0.000763) == "0.000763"
+        assert _fmt_amount(0.0702) == "0.0702"
+        assert _fmt_amount(93.75) == "93.75"
+        assert _fmt_amount(1234.5) == "1,234.50"
+
+    def test_tiny_amount_not_shown_as_zero(self):
+        """極小額が 0.0000 に潰れないこと。"""
+        from bq_job_diagnose.report.markdown_report import _fmt_amount
+
+        assert _fmt_amount(2.683333333333333e-06) != "0.0000"

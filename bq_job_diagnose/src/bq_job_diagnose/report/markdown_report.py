@@ -63,8 +63,29 @@ def _compute_elapsed_ms(job_dict: dict[str, Any]) -> int | None:
     return int((end - start).total_seconds() * 1000)
 
 
+
+def _fmt_amount(amount: float | None) -> str:
+    """金額を桁に応じた精度で整形する。
+
+    BigQuery のコストは 1 クエリ $0.0000027 から日次バッチ $600 まで
+    桁が大きくまたがる。固定の %.4f だと小さい金額が "0.0000" に潰れ、
+    「課金ゼロ」と誤読される（実データで実際に発生した）。
+    """
+    if amount is None:
+        return "-"
+    if amount == 0:
+        return "0.00"
+    if amount < 0.000001:
+        return f"{amount:.2e}"
+    if amount < 0.01:
+        return f"{amount:.6f}"
+    if amount < 1:
+        return f"{amount:.4f}"
+    return f"{amount:,.2f}"
+
 def build_markdown_report(report: dict[str, Any]) -> str:
     """`build_json_report` の戻り値（dict）から日本語 Markdown レポート文字列を生成する。"""
+    _env.filters["fmt_amount"] = _fmt_amount
     template = _env.get_template("report.md.j2")
 
     jobs = []

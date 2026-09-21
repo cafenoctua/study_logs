@@ -59,7 +59,7 @@ class JobsApiCollector:
         """取得した job._properties を匿名化した上で JSON として書き出す。"""
         import json
 
-        from scripts.anonymize_fixture import anonymize_job_properties
+        from bq_job_diagnose.anonymize import anonymize_job_properties
 
         self._dump_raw_dir.mkdir(parents=True, exist_ok=True)
         anonymized = anonymize_job_properties(properties)

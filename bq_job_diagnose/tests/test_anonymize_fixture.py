@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import copy
 
-from scripts.anonymize_fixture import anonymize_job_properties, anonymize_row
+from bq_job_diagnose.anonymize import anonymize_job_properties, anonymize_row
 
 
 class TestAnonymizeRowInformationSchema:

@@ -8,11 +8,22 @@
 {% if mode == "scan" and scan_summary %}
 ## スキャン結果（TopN）
 
-| job_id | project_id | statement_type | 指標 |
-|---|---|---|---|
-{% for row in scan_summary.get("top_n", []) %}
-| {{ row.get("job_id", "") }} | {{ row.get("project_id", "") }} | {{ row.get("statement_type", "") }} | {{ row.get("rank_value", "") }} |
+- 期間: {{ scan_summary.get("start_time", "") }} 〜 {{ scan_summary.get("end_time", "") }}
+- 並び順: {{ scan_summary.get("rank_by", "") }} 降順（上位 {{ scan_summary.get("top_n", "") }} 件）
+- 該当件数: {{ scan_summary.get("rows", [])|length }}
+
+{% if scan_summary.get("rows") %}
+| job_id | statement_type | slot_ms | 課金バイト | 経過(ms) | cache | 実行者 |
+|---|---|---:|---:|---:|---|---|
+{% for row in scan_summary.get("rows", []) %}
+| `{{ row.get("job_id", "") }}` | {{ row.get("statement_type") or "-" }} | {{ "{:,}".format(row["total_slot_ms"]) if row.get("total_slot_ms") is not none else "-" }} | {{ "{:,}".format(row["total_bytes_billed"]) if row.get("total_bytes_billed") is not none else "-" }} | {{ "{:,}".format(row["elapsed_ms"]) if row.get("elapsed_ms") is not none else "-" }} | {{ "○" if row.get("cache_hit") else "" }} | {{ row.get("user_email") or "-" }} |
 {% endfor %}
+
+各ジョブのプラン診断は `bq-job-diagnose job <job_id>` または `drill` で実行する。
+（scan はプランを取得しないため、プラン依存のルールは評価されない）
+{% else %}
+該当するジョブがありませんでした。
+{% endif %}
 
 {% endif %}
 {% for job_entry in jobs %}
@@ -33,8 +44,8 @@
 
 | 課金モデル | 金額 | 算出根拠 | 単価 | 備考 |
 |---|---|---|---|---|
-| on-demand | {% if cost.on_demand.amount is not none %}{{ "%.4f"|format(cost.on_demand.amount) }} {{ cost.on_demand.currency }}{% else %}{{ cost.on_demand.unavailable_reason }}{% endif %} | {% if cost.on_demand.basis_value is not none %}{{ cost.on_demand.basis_value }} {{ cost.on_demand.basis_unit }}{% else %}(なし){% endif %} | {{ cost.on_demand.unit_price }}（{{ cost.on_demand.price_ref }}） | - |
-| editions{% if cost.editions.edition %} ({{ cost.editions.edition }}){% endif %} | {% if cost.editions.amount is not none %}{{ "%.4f"|format(cost.editions.amount) }} {{ cost.editions.currency }}{% else %}{{ cost.editions.unavailable_reason }}{% endif %} | {% if cost.editions.basis_value is not none %}{{ cost.editions.basis_value }} {{ cost.editions.basis_unit }}{% else %}(なし){% endif %} | {{ cost.editions.unit_price }}（{{ cost.editions.price_ref }}） | Editions の金額はコミットメント割引を反映しない上限見積です |
+| on-demand | {% if cost.on_demand.amount is not none %}{{ cost.on_demand.amount|fmt_amount }} {{ cost.on_demand.currency }}{% else %}{{ cost.on_demand.unavailable_reason }}{% endif %} | {% if cost.on_demand.basis_value is not none %}{{ cost.on_demand.basis_value }} {{ cost.on_demand.basis_unit }}{% else %}(なし){% endif %} | {{ cost.on_demand.unit_price }}（{{ cost.on_demand.price_ref }}） | - |
+| editions{% if cost.editions.edition %} ({{ cost.editions.edition }}){% endif %} | {% if cost.editions.amount is not none %}{{ cost.editions.amount|fmt_amount }} {{ cost.editions.currency }}{% else %}{{ cost.editions.unavailable_reason }}{% endif %} | {% if cost.editions.basis_value is not none %}{{ cost.editions.basis_value }} {{ cost.editions.basis_unit }}{% else %}(なし){% endif %} | {{ cost.editions.unit_price }}（{{ cost.editions.price_ref }}） | Editions の金額はコミットメント割引を反映しない上限見積です |
 
 - 実際に使われた課金モデル: {{ cost.actual_model }}
 {% if cost.cheaper_model %}

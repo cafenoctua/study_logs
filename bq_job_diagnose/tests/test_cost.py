@@ -240,3 +240,29 @@ class TestCompare:
         assert cmp.cheaper_model is BillingModel.EDITIONS
         expected_ratio = (31.25 - 0.60) / 31.25
         assert cmp.savings_ratio == pytest.approx(expected_ratio, rel=1e-9)
+
+
+class TestNegligibleAmountComparison:
+    """無視できる金額どうしは比較しない。
+
+    実データで $0 と $0.0000027 を比較し「安価なモデル: on_demand（削減率 100.0%）」
+    と表示された。形式的には正しいが判断材料にならず、桁を見ないユーザーを誤解させる。
+    """
+
+    def test_both_negligible_no_comparison(self):
+        th = load_thresholds()
+        # 161 slot_ms ≒ $0.0000027、0 bytes → $0
+        job = make_job(edition=None, total_bytes_billed=0, total_slot_ms=161, cache_hit=False)
+        c = compare(job, th)
+        assert c.on_demand.amount is not None
+        assert c.editions.amount is not None
+        assert c.cheaper_model is None, "無視できる金額で「安い方」を断定してはいけない"
+        assert c.savings_ratio is None
+
+    def test_meaningful_amounts_still_compared(self):
+        """意味のある金額なら従来どおり比較する。"""
+        th = load_thresholds()
+        job = make_job(edition=None, total_bytes_billed=5 * 2**40, total_slot_ms=36_000_000)
+        c = compare(job, th)
+        assert c.cheaper_model is not None
+        assert c.savings_ratio is not None and c.savings_ratio > 0

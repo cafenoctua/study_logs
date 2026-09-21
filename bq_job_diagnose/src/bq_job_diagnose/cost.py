@@ -65,6 +65,12 @@ class CostComparison:
     savings_ratio: float | None
 
 
+# これ未満の試算額どうしの比較は行わない（USD）。
+# 1 セント未満の差で「どちらが安い」と言っても判断材料にならず、
+# 削減率だけが 100% と表示されて誤解を生む。
+_NEGLIGIBLE_AMOUNT = 0.01
+
+
 def estimate_on_demand(job: Job, thresholds: Thresholds) -> CostEstimate:
     """オンデマンド課金でのコストを試算する。
 
@@ -219,7 +225,10 @@ def compare(job: Job, thresholds: Thresholds) -> CostComparison:
     savings_ratio: float | None = None
 
     if on_demand.amount is not None and editions.amount is not None:
-        if on_demand.amount == 0.0 and editions.amount == 0.0:
+        # 双方が無視できる金額なら比較しない。
+        # 形式的には $0 と $0.0000027 の比較で「100% 削減」と言えてしまうが、
+        # 判断材料としては無意味であり、桁を見ないユーザーに誤解を与える。
+        if max(on_demand.amount, editions.amount) < _NEGLIGIBLE_AMOUNT:
             cheaper_model = None
             savings_ratio = None
         elif on_demand.amount < editions.amount:

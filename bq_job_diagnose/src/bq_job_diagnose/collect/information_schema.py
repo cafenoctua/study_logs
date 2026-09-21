@@ -28,6 +28,7 @@ from typing import Any
 from google.api_core import exceptions as gcloud_exceptions
 from google.cloud import bigquery
 
+from bq_job_diagnose.anonymize import anonymize_row
 from bq_job_diagnose.collect.base import ScanRow
 from bq_job_diagnose.collect.sql import (
     ArrayParam,
@@ -44,7 +45,6 @@ from bq_job_diagnose.errors import (
 )
 from bq_job_diagnose.models import Job
 from bq_job_diagnose.normalize.from_information_schema import normalize_row
-from scripts.anonymize_fixture import anonymize_row
 
 # INFORMATION_SCHEMA.JOBS_BY_PROJECT の保持期間（日数）。これより古い
 # creation_time は原理的に取得不能。
