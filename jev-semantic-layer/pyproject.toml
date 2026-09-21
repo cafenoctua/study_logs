@@ -1,0 +1,20 @@
+[project]
+name = "jev-semantic-layer"
+version = "0.1.0"
+description = "Spike: JEV で擬似セマンティックレイヤーは作れるか（throwaway）"
+requires-python = ">=3.10"
+dependencies = [
+    "typesafe-sdk",
+    "python-dotenv",
+    "mcp>=2.2.0",
+]
+
+[project.scripts]
+jev-semantic-layer-mcp = "jev_semantic_layer.mcp_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["jev_semantic_layer"]

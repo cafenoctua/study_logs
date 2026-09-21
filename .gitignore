@@ -8,5 +8,14 @@
 # Claude Code セッションログ（個人の学習記録）
 .claude/session/
 
-# bq-job-diagnose 作業用 worktree
-bq-job-diagnose-wt/
+# 環境変数・APIキー
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+# git worktree の作業ディレクトリ
+*-wt/
