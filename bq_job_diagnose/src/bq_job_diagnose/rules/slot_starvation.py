@@ -124,13 +124,21 @@ def starvation(job: Job, th: Thresholds) -> Iterable[Finding]:
 
 @rule("slot.wait_dominant", requires_plan=True)
 def wait_dominant(job: Job, th: Thresholds) -> Iterable[Finding]:
-    """ステージの所要時間に占める wait 時間の割合が高い状態を検出する。"""
+    """ステージの所要時間に占める wait 時間の割合が高い状態を検出する。
+
+    ガード: duration_ms が min_stage_duration_ms 未満の短時間ステージは無視する。
+    8ms のステージで 3ms 待っただけで「wait が 37.5% を占める」と警告するのは
+    スケジューリング誤差を問題として報告することになり、本当に見るべき所見を
+    埋もれさせる（実ジョブで実際に発生した）。skew.compute_time と同じガード。
+    """
     for stage in job.stages:
         wait_avg = stage.wait_ms_avg
         duration_ms = stage.duration_ms
         if wait_avg is None or duration_ms is None:
             continue
         if duration_ms <= 0:
+            continue
+        if duration_ms < th.global_.min_stage_duration_ms:
             continue
 
         wait_share = wait_avg / duration_ms

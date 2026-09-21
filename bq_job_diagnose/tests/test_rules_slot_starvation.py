@@ -274,3 +274,37 @@ class TestWaitDominantBoundaries:
         job = make_job(stages=(stage,))
         for f in wait_dominant(job, TH):
             assert_no_suggestion_words(f)
+
+
+class TestWaitDominantShortStageGuard:
+    """短時間ステージでの誤検知を防ぐガード。
+
+    実ジョブで「所要時間 8ms のうち平均 3ms（37.50%）を wait」という
+    警告が出た。スケジューリング誤差レベルの値であり、本当に見るべき
+    所見を埋もれさせる。skew.compute_time と同じガードを適用する。
+    """
+
+    def test_short_stage_suppressed(self):
+        th = load_thresholds()
+        # 8ms 中 3ms 待ち = 37.5%（wait_share_warning 0.30 超）だが極小
+        stage = make_stage(start_ms=0, end_ms=8, wait_ms_avg=3)
+        job = make_job(stages=(stage,))
+        assert list(wait_dominant(job, th)) == []
+
+    def test_just_below_min_duration_suppressed(self):
+        th = load_thresholds()
+        d = th.global_.min_stage_duration_ms - 1
+        stage = make_stage(start_ms=0, end_ms=d, wait_ms_avg=int(d * 0.7))
+        job = make_job(stages=(stage,))
+        assert list(wait_dominant(job, th)) == []
+
+    def test_at_min_duration_still_fires(self):
+        """閾値ちょうどなら従来どおり検出する。"""
+        th = load_thresholds()
+        d = th.global_.min_stage_duration_ms
+        stage = make_stage(start_ms=0, end_ms=d, wait_ms_avg=int(d * 0.7))
+        job = make_job(stages=(stage,))
+        findings = list(wait_dominant(job, th))
+        assert len(findings) == 1
+        for f in findings:
+            assert_no_suggestion_words(f)
