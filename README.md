@@ -69,6 +69,53 @@ flowchart LR
   （理由は次節）。矛盾した質問はここで止まり、SQL 組み立てまで到達しない。
 - 不正な値は `Enum()` で例外になるため、**不正な SQL は生成されるのではなく到達不能**。
 
+## 利用シーンでの挙動
+
+同じ経路を通るのに、**どこで道が分かれるか**が2つのパスの違い。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as 利用者
+    participant R as router.py
+    participant J as JEV API
+    participant S as sql_builder.py
+
+    rect rgb(212, 237, 218)
+    Note over U,S: ① 答えられる質問 — SQL を生成
+    U->>R: 「先月の関西の売上どうだった？」
+    R->>J: state + 5問（choice×4 + noul×1）を1コール
+    Note right of J: 全問を並列評価<br/>問いを増やしても<br/>レイテンシはほぼ不変
+    J-->>R: is_answerable=0.90 ✓<br/>metric=revenue(1.00)<br/>region=kansai / period=last_month
+    R->>R: 0.90 ≧ 0.5 → 通過
+    R->>S: Metric("revenue") ほか Enum で検証
+    Note right of S: JEV は SQL に触れない<br/>Enum からコードが組み立てる
+    S-->>U: SELECT SUM(f.revenue) ... WHERE r.region_name='関西'
+    end
+
+    rect rgb(255, 243, 205)
+    Note over U,S: ② 答えられない質問 — SQL まで到達しない
+    U->>R: 「A商品とB商品どっちが上？」
+    R->>J: state + 5問（同じ1コール）
+    J-->>R: is_answerable=0.35 ✗<br/>metric=revenue(0.94) ← 高確信度だが無意味
+    R->>R: 0.35 < 0.5 → 門番で停止
+    Note right of R: metric は 0.94 と自信満々。<br/>軸ごとの confidence を見ていたら<br/>この質問は通過していた
+    R-->>U: 「単一の集計クエリでは答えられません」
+    end
+```
+
+**この図が示していること:**
+
+- **2つのパスは JEV への問い合わせまで完全に同一。** 質問の種類を事前に振り分ける
+  前処理は無く、分岐は `is_answerable` を受け取った後の1箇所だけ。
+- **②で `metric=revenue(0.94)` が返っている**のが重要。JEV は「A商品とB商品の比較」に
+  対しても revenue を高確信度で選ぶ。軸ごとの confidence で判定していたら
+  **この質問は通過し、意味のない SQL が生成されていた**。
+- **②は `sql_builder.py` に到達しない。** 不正な SQL を作ってから検証するのではなく、
+  そもそも組み立てフェーズまで行かせない。
+- 実測平均 **285ms**（7ケース）、入力約1,100トークン/クエリ、出力は課金対象外。
+  ②のように早期に止まるパスは、SQL 組み立てを行わない分さらに短い。
+
 ## 実測で分かったこと
 
 **判定に使えるのは `is_answerable` (noul) ただ1つだった。**
