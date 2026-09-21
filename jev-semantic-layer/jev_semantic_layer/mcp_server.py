@@ -86,7 +86,7 @@ def resolve_metric_query(question: str) -> dict[str, Any]:
         return {
             "status": "error",
             "message": str(e),
-            "hint": "jev-semantic-layer-wt/.env に TYPESAFE_API_KEY を設定してください",
+            "hint": "jev-semantic-layer/.env に TYPESAFE_API_KEY を設定してください",
         }
     except TypeSafeError as e:
         return {

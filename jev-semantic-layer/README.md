@@ -156,7 +156,7 @@ uv venv && uv pip install -e .
 
 ```bash
 claude mcp add jev-semantic -- \
-  /Users/watanabeburuno/codes/study_logs/jev-semantic-layer-wt/.venv/bin/python \
+  /Users/watanabeburuno/codes/study_logs/jev-semantic-layer/.venv/bin/python \
   -m jev_semantic_layer.mcp_server
 ```
 
