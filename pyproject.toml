@@ -6,7 +6,11 @@ requires-python = ">=3.10"
 dependencies = [
     "typesafe-sdk",
     "python-dotenv",
+    "mcp>=2.2.0",
 ]
+
+[project.scripts]
+jev-semantic-layer-mcp = "jev_semantic_layer.mcp_server:main"
 
 [build-system]
 requires = ["hatchling"]

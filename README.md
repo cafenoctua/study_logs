@@ -146,9 +146,66 @@ noul だけがこれを捉えた（0.24）。
 
 ```bash
 cp .env.example .env     # TYPESAFE_API_KEY に値を入れる
-uv venv && uv pip install typesafe-sdk python-dotenv
+uv venv && uv pip install -e .
 .venv/bin/python -m jev_semantic_layer.run_spike
 ```
+
+## Claude から使う（MCP サーバ）
+
+`resolve_metric_query(question)` の1ツールだけを公開する MCP サーバを同梱している。
+
+```bash
+claude mcp add jev-semantic -- \
+  /Users/watanabeburuno/codes/study_logs/jev-semantic-layer-wt/.venv/bin/python \
+  -m jev_semantic_layer.mcp_server
+```
+
+API キーは `-e` で渡さず、サーバが自分の `.env` を絶対パスで読む
+（コマンド履歴にキーを残さないため）。
+
+### 役割分担
+
+```
+User   → Claude          質問する
+Claude → resolve_metric_query()   意味解決を委ねる
+JEV    → 選ぶだけ         choice×4 + noul×1 を1コール
+コード  → SQL を組み立てる  Enum から決定論的に
+Claude → User            SQL を提示して実行可否を確認
+```
+
+**ツールは確認を取らない**（elicitation を使わない）。判断材料を返すだけで、
+ユーザーへの確認は Claude の仕事。こうすることで Claude は
+「metric は revenue と判断されましたが、比較質問なので実行できません」のように
+文脈に応じた説明ができる。
+
+### 返り値
+
+`status` が最上位。Claude がまず見るべき分岐がそこだと明確にしている。
+
+| status | 意味 | `sql` |
+|---|---|---|
+| `resolved` | 答えられる。SQL を生成した | SQL 文字列 |
+| `clarify` | 単一の集計クエリに写像できない | `null` |
+| `error` | キー未設定・API エラー | `null` |
+
+`clarify` のときも `resolved`（各軸の判断と確率分布）を返す。
+Claude が「何がどう判断されたか」を具体的に説明できるようにするため。
+あわせて `note` で「軸ごとの confidence が高くても答えられないことがある」と
+明示している — これが無いと `metric=1.00` を見て「大丈夫だろう」と誤読しうる。
+
+実測（MCP 経由・end-to-end）:
+
+| 質問 | status | is_answerable |
+|---|---|---|
+| 先月の関西の売上は？ | `resolved` | 0.89 |
+| 来月の売上を予測して | `clarify` | 0.04 |
+| 関東の注文件数を四半期ごとに、直近1週間で | `clarify` | 0.30 |
+
+### 注意
+
+stdout は MCP のプロトコル channel。SDK の HTTP ログは stderr に出ることを
+確認済み（stdout は 0 行）だが、このパッケージに `print()` を足す際は
+必ず stderr に出すこと。
 
 ## コスト
 
@@ -166,6 +223,7 @@ uv venv && uv pip install typesafe-sdk python-dotenv
 | `sql_builder.py` | Enum → SQL（JEV は関与しない） |
 | `test_cases.py` | 7ケース。曖昧な質問が本命 |
 | `run_spike.py` | 実行エントリ |
+| `mcp_server.py` | MCP サーバ（Claude から呼ぶ口） |
 
 ## 未検証
 
