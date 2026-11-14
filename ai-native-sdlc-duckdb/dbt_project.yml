@@ -1,0 +1,19 @@
+name: sdlc_sample
+version: "1.0.0"
+config-version: 2
+profile: sdlc_sample
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests_dbt"]
+target-path: target
+
+models:
+  sdlc_sample:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
+seeds:
+  sdlc_sample:
+    +schema: raw

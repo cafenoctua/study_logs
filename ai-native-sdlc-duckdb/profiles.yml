@@ -1,0 +1,27 @@
+# クラウド版の BigQuery データセットを DuckDB ファイルで置き換える。
+#   analytics_dev → warehouse/dev.duckdb
+#   analytics_ci  → warehouse/ci.duckdb (CI 毎に作り直す)
+#   analytics/ops → warehouse/prod.duckdb
+# ci/dev は prod.duckdb を read_only で attach し、defer 先として参照する。
+sdlc_sample:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_PROJECT_DIR', '.') }}/warehouse/dev.duckdb"
+      schema: analytics
+      threads: 4
+    ci:
+      type: duckdb
+      path: "{{ env_var('DBT_PROJECT_DIR', '.') }}/warehouse/ci.duckdb"
+      schema: "analytics_ci_pr{{ env_var('PR_NUMBER', 'local') }}"
+      threads: 4
+      attach:
+        - path: "{{ env_var('DBT_PROJECT_DIR', '.') }}/warehouse/prod.duckdb"
+          alias: prod
+          read_only: true
+    prod:
+      type: duckdb
+      path: "{{ env_var('DBT_PROJECT_DIR', '.') }}/warehouse/prod.duckdb"
+      schema: analytics
+      threads: 4

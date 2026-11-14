@@ -1,0 +1,5 @@
+dbt-duckdb>=1.9,<2
+sqlfluff>=3.0
+sqlfluff-templater-dbt>=3.0
+pytest>=8
+pyyaml>=6
