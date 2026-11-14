@@ -1,6 +1,6 @@
 # ai-native-sdlc-duckdb
 
-「AI-Native SDLC サンプル構成」(GitHub + dbt + Python + Google Cloud)を、**クラウドリソースを使わず DuckDB でローカル完結**させた実装。
+「AI-Native SDLC サンプル構成」(GitHub + dbt + Python + Google Cloud)を、**クラウドリソースを使わず DuckDB でローカル完結**させた実装。**dbt v2**(`pip install dbt`)で動かす。
 
 ## クラウド版との対応
 
@@ -13,6 +13,13 @@
 | サービスアカウント権限 | DuckDB の read_only 接続 + `.claude/settings.json` の deny + フック |
 | `INFORMATION_SCHEMA.TABLE_STORAGE` | `count(*)` / `ops.deployments` の最終成功時刻 |
 | claude-code-action の診断 + Issue | `artifacts/diagnose/*.md` にプロンプト出力(`RUN_CLAUDE=1` で `claude -p` 実行) |
+
+## dbt v2 について
+
+- `dbt` パッケージ(v2)は単一バイナリ。DuckDB は ADBC ドライバ経由で、初回実行時に自動ダウンロードされる
+- lint は v2 内蔵の `dbt lint`(SQLFluff 互換。`.sqlfluff` のルールコードをそのまま使う)。sqlfluff 本体は不要
+- **Python 側の `duckdb` は 1.5 系に固定**。v2 の DuckDB ドライバ(1.5.x)と DB ファイル形式を合わせないと、`prod.duckdb` を開けなくなる(`version number 999` エラー)
+- manifest は v12 形式のまま。`state:modified+` / `--defer` は v1 と同じコマンドで動く
 
 ## 構成
 
@@ -56,7 +63,7 @@ MONITOR_MODE=active python monitoring/detect.py
 
 ## 確認済み
 
-- pytest 13件 PASS、`dbt build`(dev / ci / prod)PASS、sqlfluff lint クリーン
+- pytest 13件 PASS、`dbt build`(dev / ci / prod)PASS、`dbt lint` クリーン
 - モデル1つを変更したとき Slim CI が `fct_orders`, `dim_customers` だけを build すること
 - 異常投入で段階3が記録され、active モードで診断プロンプトが出ること
 - `workflows/` の Actions 定義は未実行(サンプル)

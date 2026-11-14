@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash
 
 手順:
 1. `git diff --name-only origin/main...HEAD` で変更ファイルを把握
-2. 変更 SQL に `sqlfluff lint <files>`
+2. 変更 SQL に `dbt lint <files>`
 3. `pytest -q`
 4. `dbt build --target dev --select state:modified+ --state artifacts/prod-manifest`
    (manifest がなければ `dbt build --target dev`)

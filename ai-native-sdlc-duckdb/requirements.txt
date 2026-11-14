@@ -1,5 +1,6 @@
-dbt-duckdb>=1.9,<2
-sqlfluff>=3.0
-sqlfluff-templater-dbt>=3.0
+# dbt v2(単一バイナリ。DuckDB は ADBC ドライバ経由で初回実行時に自動取得)
+dbt>=2.0,<3
+# Python 側(監視・ops 記録)の DuckDB は dbt v2 の ADBC ドライバ(DuckDB 1.5 系)とファイル形式を揃える
+duckdb>=1.5,<1.6
 pytest>=8
 pyyaml>=6

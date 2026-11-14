@@ -18,7 +18,7 @@ test:             ## フックとσ判定のユニットテスト
 	pytest -q
 
 lint:             ## SQL lint
-	sqlfluff lint models
+	dbt lint
 
 ci:               ## Slim CI 相当(state:modified+ / defer)
 	bash scripts/ci.sh

@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(dbt build:*)", "Bash(dbt run:*)", "Bash(dbt test:*)", "Bash(dbt compile:*)", "Bash(dbt ls:*)",
-      "Bash(sqlfluff lint:*)", "Bash(sqlfluff fix:*)", "Bash(pytest:*)",
+      "Bash(dbt lint:*)", "Bash(dbt parse:*)", "Bash(pytest:*)",
       "Bash(make test)", "Bash(make lint)", "Bash(make dev)", "Bash(make ci)",
       "Bash(python scripts/run_sql.py --read-only:*)",
       "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)"

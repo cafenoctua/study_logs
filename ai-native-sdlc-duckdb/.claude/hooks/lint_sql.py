@@ -1,4 +1,4 @@
-"""PostToolUse: 編集した SQL 1ファイルだけ sqlfluff で lint。違反は exit 2 で Claude に返し、その場で直させる。"""
+"""PostToolUse: 編集した SQL 1ファイルだけ `dbt lint`(v2 内蔵の SQLFluff 互換 linter)で lint。違反は exit 2 で Claude に返し、その場で直させる。"""
 from __future__ import annotations
 
 import json
@@ -22,13 +22,13 @@ def main() -> int:
     except Exception:
         return 0
     path = target_sql(data)
-    if not path or not shutil.which("sqlfluff"):
+    if not path or not shutil.which("dbt"):
         return 0
     root = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
-    r = subprocess.run(["sqlfluff", "lint", path, "--disable-progress-bar"],
+    r = subprocess.run(["dbt", "lint", path],
                        cwd=root, capture_output=True, text=True)
     if r.returncode != 0:
-        print(f"sqlfluff violations in {path}:\n{r.stdout[-4000:]}", file=sys.stderr)
+        print(f"lint violations in {path}:\n{r.stdout[-4000:]}", file=sys.stderr)
         return 2
     return 0
 

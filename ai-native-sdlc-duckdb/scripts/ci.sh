@@ -15,7 +15,7 @@ echo "== unit =="
 pytest -q
 CHANGED=$(git diff --name-only --diff-filter=AM origin/main...HEAD -- 'models/*.sql' 2>/dev/null \
           | sed "s#^$(git rev-parse --show-prefix)##" || true)
-if [ -n "$CHANGED" ]; then sqlfluff lint $CHANGED; else echo "no changed SQL"; fi
+if [ -n "$CHANGED" ]; then dbt lint $CHANGED; else echo "no changed SQL"; fi
 
 echo "== dbt-slim-ci (analytics_ci_pr${PR_NUMBER}) =="
 rm -f warehouse/ci.duckdb

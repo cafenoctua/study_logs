@@ -1,14 +1,8 @@
+# dbt v2 の `dbt lint`(SQLFluff 互換)がこの設定とルールコードを読む
 [sqlfluff]
 dialect = duckdb
-templater = dbt
 max_line_length = 120
 exclude_rules = ST06
-
-[sqlfluff:templater:dbt]
-project_dir = .
-profiles_dir = .
-profile = sdlc_sample
-target = dev
 
 [sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = lower

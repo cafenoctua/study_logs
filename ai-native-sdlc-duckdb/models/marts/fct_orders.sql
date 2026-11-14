@@ -6,6 +6,5 @@ select
     cast(o.ordered_at as date) as order_date,
     o.amount,
     o.status,
-    o.status = 'completed' as is_revenue,
-    o.amount >= 1000 as is_large
+    o.status = 'completed' as is_revenue
 from {{ ref('stg_orders') }} as o
