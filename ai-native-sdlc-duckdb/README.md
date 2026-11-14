@@ -14,6 +14,11 @@
 | `INFORMATION_SCHEMA.TABLE_STORAGE` | `count(*)` / `ops.deployments` の最終成功時刻 |
 | claude-code-action の診断 + Issue | `artifacts/diagnose/*.md` にプロンプト出力(`RUN_CLAUDE=1` で `claude -p` 実行) |
 
+## 動作環境
+
+- Python **3.14**(`.python-version`。`make setup` は `python3.14` で venv を作る。別の版を使うなら `make setup PY=python3.x`)
+- dbt 2.0.11 / DuckDB 1.5.x で確認
+
 ## dbt v2 について
 
 - `dbt` パッケージ(v2)は単一バイナリ。DuckDB は ADBC ドライバ経由で、初回実行時に自動ダウンロードされる

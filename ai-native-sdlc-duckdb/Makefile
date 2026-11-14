@@ -1,5 +1,5 @@
 # ローカル完結の AI-Native SDLC サンプル。クラウドは一切使わない。
-PY ?= python
+PY ?= python3.14
 export DBT_PROFILES_DIR := $(CURDIR)
 export DBT_PROJECT_DIR := $(CURDIR)
 
