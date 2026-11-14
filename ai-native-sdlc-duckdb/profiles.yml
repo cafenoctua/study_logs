@@ -3,6 +3,8 @@
 #   analytics_ci  → warehouse/ci.duckdb (CI 毎に作り直す)
 #   analytics/ops → warehouse/prod.duckdb
 # ci/dev は prod.duckdb を read_only で attach し、defer 先として参照する。
+# bq_compat は BigQuery 互換チェック専用。接続はせず、dbt v2 の静的解析で
+# BigQuery 方言として SQL を型まで解析するだけ(認証情報は不要・入れない)。
 sdlc_sample:
   target: dev
   outputs:
@@ -24,4 +26,11 @@ sdlc_sample:
       type: duckdb
       path: "{{ env_var('DBT_PROJECT_DIR', '.') }}/warehouse/prod.duckdb"
       schema: analytics
+      threads: 4
+    bq_compat:
+      type: bigquery
+      method: oauth
+      project: bq-compat-offline
+      dataset: analytics
+      location: US
       threads: 4

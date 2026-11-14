@@ -17,6 +17,9 @@ CHANGED=$(git diff --name-only --diff-filter=AM origin/main...HEAD -- 'models/*.
           | sed "s#^$(git rev-parse --show-prefix)##" || true)
 if [ -n "$CHANGED" ]; then dbt lint $CHANGED; else echo "no changed SQL"; fi
 
+echo "== bigquery-compat (static analysis, no connection) =="
+dbt compile --target bq_compat --static-analysis strict
+
 echo "== dbt-slim-ci (analytics_ci_pr${PR_NUMBER}) =="
 rm -f warehouse/ci.duckdb
 if [ -f "$STATE/manifest.json" ]; then

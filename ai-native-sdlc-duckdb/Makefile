@@ -3,7 +3,7 @@ PY ?= python3.14
 export DBT_PROFILES_DIR := $(CURDIR)
 export DBT_PROJECT_DIR := $(CURDIR)
 
-.PHONY: setup ops dev test lint ci deploy monitor kpi seed-history clean
+.PHONY: setup ops dev test lint bq-compat ci deploy monitor kpi seed-history clean
 
 setup:            ## venv 作成と依存インストール
 	$(PY) -m venv .venv && .venv/bin/pip install -r requirements.txt
@@ -19,6 +19,9 @@ test:             ## フックとσ判定のユニットテスト
 
 lint:             ## SQL lint
 	dbt lint
+
+bq-compat:        ## BigQuery で実行可能かを接続なしで静的解析
+	dbt compile --target bq_compat --static-analysis strict
 
 ci:               ## Slim CI 相当(state:modified+ / defer)
 	bash scripts/ci.sh

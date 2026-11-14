@@ -22,7 +22,11 @@
 ## dbt v2 について
 
 - `dbt` パッケージ(v2)は単一バイナリ。DuckDB は ADBC ドライバ経由で、初回実行時に自動ダウンロードされる
-- lint は v2 内蔵の `dbt lint`(SQLFluff 互換。`.sqlfluff` のルールコードをそのまま使う)。sqlfluff 本体は不要
+- lint は v2 内蔵の `dbt lint`。sqlfluff 本体も `.sqlfluff` 設定も使わない(既定ルール。キーワードの大文字小文字は「ファイル内で一貫」)
+  - 設定ファイルがないと `templater 'jinja' is not supported` の警告が毎回出るが、lint 自体は動く
+- **BigQuery 互換チェック**: `make bq-compat`(`dbt compile --target bq_compat --static-analysis strict`)。BigQuery へは接続せず、v2 の静的解析で BigQuery 方言として型まで解析する。CI にも組み込み済み
+  - 検出できる例: `count(*) filter (where ...)`(BigQuery に無い構文)、`date_trunc('week', ts)`(引数の型不一致)
+  - 検出できないもの: 実データでの挙動、dbt 外の SQL(`monitoring/sql/`)と Python
 - **Python 側の `duckdb` は 1.5 系に固定**。v2 の DuckDB ドライバ(1.5.x)と DB ファイル形式を合わせないと、`prod.duckdb` を開けなくなる(`version number 999` エラー)
 - manifest は v12 形式のまま。`state:modified+` / `--defer` は v1 と同じコマンドで動く
 
@@ -49,6 +53,7 @@ cd ai-native-sdlc-duckdb
 make setup && source .venv/bin/activate
 make ops            # prod.duckdb に ops スキーマ
 make test           # pytest 13件
+make bq-compat      # BigQuery 互換の静的解析(接続なし)
 make dev            # dbt build --target dev
 make ci             # Slim CI(初回は prod manifest がないので全件 build)
 make deploy         # 承認者名を入力 → prod build → manifest 保存 → ops 記録(main 以外は ALLOW_NON_MAIN=1)
@@ -68,7 +73,7 @@ MONITOR_MODE=active python monitoring/detect.py
 
 ## 確認済み
 
-- pytest 13件 PASS、`dbt build`(dev / ci / prod)PASS、`dbt lint` クリーン
+- pytest 13件 PASS、`dbt build`(dev / ci / prod)PASS、`dbt lint` クリーン、BigQuery 互換の静的解析 PASS
 - モデル1つを変更したとき Slim CI が `fct_orders`, `dim_customers` だけを build すること
 - 異常投入で段階3が記録され、active モードで診断プロンプトが出ること
 - CI は GitHub Actions で実行(`.github/workflows/ai-native-sdlc-duckdb-ci.yml`)。deploy / monitor / claude-review は未実行

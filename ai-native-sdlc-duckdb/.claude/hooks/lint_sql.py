@@ -1,4 +1,4 @@
-"""PostToolUse: 編集した SQL 1ファイルだけ `dbt lint`(v2 内蔵の SQLFluff 互換 linter)で lint。違反は exit 2 で Claude に返し、その場で直させる。"""
+"""PostToolUse: 編集した SQL 1ファイルだけ `dbt lint`(dbt v2 内蔵)で lint。違反は exit 2 で Claude に返し、その場で直させる。"""
 from __future__ import annotations
 
 import json

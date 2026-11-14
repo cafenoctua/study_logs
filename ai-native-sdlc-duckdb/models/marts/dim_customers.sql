@@ -15,8 +15,8 @@ select
     c.customer_name,
     c.signup_date,
     c.country,
+    r.last_ordered_at,
     coalesce(r.completed_orders, 0) as completed_orders,
-    coalesce(r.lifetime_value, 0) as lifetime_value,
-    r.last_ordered_at
+    coalesce(r.lifetime_value, 0) as lifetime_value
 from {{ ref('stg_customers') }} as c
 left join revenue as r on c.customer_id = r.customer_id

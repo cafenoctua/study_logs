@@ -6,7 +6,8 @@ dbt + DuckDB のローカル完結サンプル。クラウドは使わない。
 - `make setup && source .venv/bin/activate` — 初回
 - `make ops` — `warehouse/prod.duckdb` に ops スキーマ作成
 - `make dev` — `dbt build --target dev`
-- `make lint` / `dbt lint <file>` — SQL lint(v2 内蔵、SQLFluff 互換で `.sqlfluff` を読む)
+- `make lint` / `dbt lint <file>` — SQL lint(dbt v2 内蔵)
+- `make bq-compat` — BigQuery で実行可能かを接続なしで静的解析
 - `make test` — pytest(フックと σ 判定)
 - `make ci` — Slim CI 相当
 - `make deploy` — **人間専用**。Claude は実行しない
