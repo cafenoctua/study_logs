@@ -1,9 +1,10 @@
-# GitHub Actions 版(クラウドリソース不要: ランナー上で DuckDB を使う)。
-# モノレポのサブディレクトリなので、有効化するときは .github/workflows/ にコピーする。
+# ai-native-sdlc-duckdb の CI(クラウドリソース不要: ランナー上で DuckDB を使う)
 name: ai-native-sdlc-duckdb-ci
 on:
   pull_request:
-    paths: ["ai-native-sdlc-duckdb/**"]
+    paths:
+      - "ai-native-sdlc-duckdb/**"
+      - ".github/workflows/ai-native-sdlc-duckdb-ci.yml"
 defaults:
   run:
     working-directory: ai-native-sdlc-duckdb

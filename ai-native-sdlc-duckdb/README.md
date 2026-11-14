@@ -32,7 +32,7 @@ seeds/              raw_customers, raw_orders
 monitoring/         metrics.yml, severity.py(σ判定), collect.py, detect.py, sql/ops_tables.sql, sql/kpi.sql
 ci/                 upload_run_results.py, record.py
 scripts/            ci.sh(ci.yml 相当), deploy.sh(deploy.yml 相当), init_ops.py, run_sql.py, seed_history.py
-workflows/          Actions 版のサンプル(有効化するときはリポジトリ直下の .github/workflows/ へ)
+workflows/          deploy / monitor / claude-review のサンプル(未有効化)。CI はリポジトリ直下 .github/workflows/ai-native-sdlc-duckdb-ci.yml で有効
 tests/              pytest(フックと σ 判定)
 CLAUDE.md, REVIEW.md
 ```
@@ -66,4 +66,4 @@ MONITOR_MODE=active python monitoring/detect.py
 - pytest 13件 PASS、`dbt build`(dev / ci / prod)PASS、`dbt lint` クリーン
 - モデル1つを変更したとき Slim CI が `fct_orders`, `dim_customers` だけを build すること
 - 異常投入で段階3が記録され、active モードで診断プロンプトが出ること
-- `workflows/` の Actions 定義は未実行(サンプル)
+- CI は GitHub Actions で実行(`.github/workflows/ai-native-sdlc-duckdb-ci.yml`)。deploy / monitor / claude-review は未実行
