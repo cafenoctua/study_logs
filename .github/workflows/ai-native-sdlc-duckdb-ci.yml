@@ -16,7 +16,10 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-python@v5
         with: { python-version: "3.14" }
-      - run: pip install -r requirements.txt
+      - name: Install dbt v2 (standalone binary)
+        run: bash scripts/install_dbt.sh "$HOME/.dbt-v2" && echo "$HOME/.dbt-v2/bin" >> "$GITHUB_PATH"
+      - name: Install Python deps (monitoring / ops / tests only)
+        run: pip install -r requirements.txt
       # GCS の代わりに、main の deploy が上げた artifact を本番 manifest / prod.duckdb として取得
       - uses: dawidd6/action-download-artifact@v6
         continue-on-error: true   # 初回は存在しない → 全件 build

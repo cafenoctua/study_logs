@@ -2,10 +2,13 @@
 PY ?= python3.14
 export DBT_PROFILES_DIR := $(CURDIR)
 export DBT_PROJECT_DIR := $(CURDIR)
+# dbt は .tools/bin の単体バイナリを優先して使う
+export PATH := $(CURDIR)/.tools/bin:$(CURDIR)/.venv/bin:$(PATH)
 
 .PHONY: setup ops dev test lint bq-compat ci deploy monitor kpi seed-history clean
 
-setup:            ## venv 作成と依存インストール
+setup:            ## dbt 単体バイナリ + 監視/テスト用の Python 依存
+	bash scripts/install_dbt.sh
 	$(PY) -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 ops:              ## ops スキーマ(prod.duckdb 内)を作成

@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.14" }
       - run: pip install -r requirements.txt
+      - run: bash scripts/install_dbt.sh "$HOME/.dbt-v2" && echo "$HOME/.dbt-v2/bin" >> "$GITHUB_PATH"
       - uses: dawidd6/action-download-artifact@v6
         with: { workflow: ai-native-sdlc-duckdb-deploy.yml, branch: main, name: prod-state, path: ai-native-sdlc-duckdb }
       - run: python monitoring/collect.py && python monitoring/detect.py

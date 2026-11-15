@@ -3,7 +3,7 @@
 dbt + DuckDB のローカル完結サンプル。クラウドは使わない。
 
 ## コマンド
-- `make setup && source .venv/bin/activate` — 初回
+- `make setup` — 初回(dbt 単体バイナリを `.tools/bin`、Python 依存を `.venv` に入れる)
 - `make ops` — `warehouse/prod.duckdb` に ops スキーマ作成
 - `make dev` — `dbt build --target dev`
 - `make lint` / `dbt lint <file>` — SQL lint(dbt v2 内蔵)

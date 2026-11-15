@@ -21,7 +21,8 @@
 
 ## dbt v2 について
 
-- `dbt` パッケージ(v2)は単一バイナリ。DuckDB は ADBC ドライバ経由で、初回実行時に自動ダウンロードされる
+- dbt は **Python パッケージではなく単体バイナリ**で入れる(`scripts/install_dbt.sh`。公式インストーラを `--version 2.0.11` で固定し `./.tools/bin` に配置)。DuckDB は ADBC ドライバ経由で、初回実行時に自動ダウンロードされる
+- Python が要るのは監視(`monitoring/`)、ops への記録(`ci/`, `scripts/*.py`)、pytest だけ。dbt の lint・BigQuery 互換チェック・build は Python なしで動く
 - lint は v2 内蔵の `dbt lint`。sqlfluff 本体も `.sqlfluff` 設定も使わない(既定ルール。キーワードの大文字小文字は「ファイル内で一貫」)
   - 設定ファイルがないと `templater 'jinja' is not supported` の警告が毎回出るが、lint 自体は動く
 - **BigQuery 互換チェック**: `make bq-compat`(`dbt compile --target bq_compat --static-analysis strict`)。BigQuery へは接続せず、v2 の静的解析で BigQuery 方言として型まで解析する。CI にも組み込み済み
@@ -50,7 +51,8 @@ CLAUDE.md, REVIEW.md
 
 ```bash
 cd ai-native-sdlc-duckdb
-make setup && source .venv/bin/activate
+make setup          # dbt バイナリを .tools/bin に、Python 依存を .venv に
+export PATH=$PWD/.tools/bin:$PWD/.venv/bin:$PATH   # make 以外から使うとき
 make ops            # prod.duckdb に ops スキーマ
 make test           # pytest 13件
 make bq-compat      # BigQuery 互換の静的解析(接続なし)

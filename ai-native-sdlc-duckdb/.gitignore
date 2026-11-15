@@ -10,3 +10,4 @@ __pycache__/
 .pytest_cache/
 .user.yml
 dbt_internal_packages/
+.tools/
