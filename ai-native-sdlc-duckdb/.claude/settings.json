@@ -9,7 +9,7 @@
     ],
     "deny": [
       "Read(./.env)", "Read(./.env.*)", "Read(./**/*.key)", "Read(./**/sa-*.json)",
-      "Bash(dbt * --target prod:*)", "Bash(dbt *--target=prod*)",
+      "Bash(dbt * --target prod*)", "Bash(dbt *--target=prod*)",
       "Bash(make deploy)", "Bash(bash scripts/deploy.sh:*)",
       "Bash(rm warehouse/*)", "Bash(rm -rf warehouse:*)",
       "Bash(git push:*)"

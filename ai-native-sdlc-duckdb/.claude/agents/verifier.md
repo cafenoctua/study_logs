@@ -10,8 +10,10 @@ tools: Read, Grep, Glob, Bash
 1. `git diff --name-only origin/main...HEAD` で変更ファイルを把握
 2. 変更 SQL に `dbt lint <files>`
 3. `pytest -q`
-4. `dbt build --target dev --select state:modified+ --state artifacts/prod-manifest`
-   (manifest がなければ `dbt build --target dev`)
+4. `dbt build --target ci --select state:modified+ --defer --state artifacts/prod-manifest`
+   (manifest がなければ `dbt build --target ci`)
+   - ci ターゲットは prod.duckdb を read_only で attach しているので、変更していない上流は本番を参照できる
+   - dev ターゲットは prod を attach しない(dev から prod を開くとロック競合が起きるため)
 5. 結果を次の形式で返す
 
 ```
