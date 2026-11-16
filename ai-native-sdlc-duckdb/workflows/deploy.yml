@@ -1,0 +1,28 @@
+name: ai-native-sdlc-duckdb-deploy
+on:
+  push:
+    branches: [main]
+    paths: ["ai-native-sdlc-duckdb/**"]
+defaults:
+  run:
+    working-directory: ai-native-sdlc-duckdb
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production        # Required reviewers による人間のゲート
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.14" }
+      - run: pip install -r requirements.txt
+      - run: bash scripts/install_dbt.sh "$HOME/.dbt-v2" && echo "$HOME/.dbt-v2/bin" >> "$GITHUB_PATH"
+      - uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with: { workflow: ai-native-sdlc-duckdb-deploy.yml, branch: main, name: prod-state, path: ai-native-sdlc-duckdb }
+      - run: echo "${{ github.actor }}" | bash scripts/deploy.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prod-state
+          path: |
+            ai-native-sdlc-duckdb/warehouse/prod.duckdb
+            ai-native-sdlc-duckdb/artifacts/prod-manifest/

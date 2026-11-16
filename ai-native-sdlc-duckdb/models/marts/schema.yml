@@ -1,0 +1,14 @@
+version: 2
+models:
+  - name: fct_orders
+    description: 注文ファクト。1行=1注文
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+  - name: dim_customers
+    description: 顧客ディメンション。1行=1顧客
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+      - name: lifetime_value
+        data_tests: [not_null]
