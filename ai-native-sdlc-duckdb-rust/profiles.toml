@@ -1,0 +1,22 @@
+# クラウド版の BigQuery データセットを DuckDB ファイルで置き換える。
+#   analytics_dev → warehouse/dev.duckdb
+#   analytics_ci  → warehouse/ci.duckdb (CI 毎に作り直す)
+#   analytics/ops → warehouse/prod.duckdb
+# ci は prod.duckdb を read_only で attach し、defer 先として参照する(verifier も ci を使う)。
+# dev は attach しない: dev から prod を開くと deploy / monitor とロック競合するため。
+# 相対パスはこのファイルのあるディレクトリ基準。
+[sdlc_sample]
+target = "dev"
+
+[sdlc_sample.outputs.dev]
+path = "warehouse/dev.duckdb"
+schema = "analytics"
+
+[sdlc_sample.outputs.ci]
+path = "warehouse/ci.duckdb"
+schema = "analytics_ci_pr${PR_NUMBER:-local}"
+attach = [{ path = "warehouse/prod.duckdb", alias = "prod", read_only = true }]
+
+[sdlc_sample.outputs.prod]
+path = "warehouse/prod.duckdb"
+schema = "analytics"

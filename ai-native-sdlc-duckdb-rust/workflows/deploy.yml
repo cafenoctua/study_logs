@@ -1,0 +1,28 @@
+name: ai-native-sdlc-duckdb-rust-deploy
+on:
+  push:
+    branches: [main]
+    paths: ["ai-native-sdlc-duckdb-rust/**"]
+defaults:
+  run:
+    working-directory: ai-native-sdlc-duckdb-rust
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production        # Required reviewers による人間のゲート
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: ai-native-sdlc-duckdb-rust }
+      - run: cargo build --release --locked
+      - uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with: { workflow: ai-native-sdlc-duckdb-rust-deploy.yml, branch: main, name: prod-state-rust, path: ai-native-sdlc-duckdb-rust }
+      - run: echo "${{ github.actor }}" | bash scripts/deploy.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prod-state-rust
+          path: |
+            ai-native-sdlc-duckdb-rust/warehouse/prod.duckdb
+            ai-native-sdlc-duckdb-rust/artifacts/prod-manifest/

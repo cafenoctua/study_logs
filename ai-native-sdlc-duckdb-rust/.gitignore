@@ -1,0 +1,6 @@
+/target/
+/forge_target/
+warehouse/*.duckdb
+warehouse/*.wal
+artifacts/
+.env
