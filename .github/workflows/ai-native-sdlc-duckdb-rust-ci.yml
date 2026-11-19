@@ -1,0 +1,38 @@
+# ai-native-sdlc-duckdb-rust の CI(クラウドリソース不要: ランナー上で DuckDB を使う。dbt / Python なし)
+name: ai-native-sdlc-duckdb-rust-ci
+on:
+  pull_request:
+    paths:
+      - "ai-native-sdlc-duckdb-rust/**"
+      - ".github/workflows/ai-native-sdlc-duckdb-rust-ci.yml"
+defaults:
+  run:
+    working-directory: ai-native-sdlc-duckdb-rust
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: "clippy, rustfmt" }
+      # DuckDB 本体(C++)を同梱ビルドするので初回は時間がかかる。2回目以降はキャッシュ
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ai-native-sdlc-duckdb-rust
+          cache-bin: "true"
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo build --release --locked
+      - run: command -v sqruff || cargo install sqruff --locked
+      # GCS の代わりに、main の deploy が上げた artifact を本番 manifest / prod.duckdb として取得
+      - uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true   # 初回は存在しない → 全件 build
+        with:
+          workflow: ai-native-sdlc-duckdb-rust-deploy.yml
+          branch: main
+          name: prod-state-rust
+          path: ai-native-sdlc-duckdb-rust
+      - run: ./target/release/forge ops init
+      - run: bash scripts/ci.sh
+        env: { PR_NUMBER: "${{ github.event.number }}", CI_ATTEMPT: "${{ github.run_attempt }}" }

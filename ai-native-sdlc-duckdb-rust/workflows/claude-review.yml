@@ -1,0 +1,37 @@
+name: ai-native-sdlc-duckdb-rust-claude-review
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    paths: ["ai-native-sdlc-duckdb-rust/**"]
+  issue_comment:
+    types: [created]
+jobs:
+  auto-review:
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    permissions: { contents: read, pull-requests: write }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: ai-native-sdlc-duckdb-rust }
+      - run: cargo build --release --locked -p forge
+        working-directory: ai-native-sdlc-duckdb-rust
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            ai-native-sdlc-duckdb-rust/REVIEW.md に従ってこの PR をレビューし、gh pr comment で投稿してください。
+            下流への影響は `ai-native-sdlc-duckdb-rust/target/release/forge --project-dir ai-native-sdlc-duckdb-rust ls --select <model>+` で確認できます。
+          claude_args: >-
+            --allowedTools "Read,Grep,Bash(git diff:*),Bash(git log:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(ai-native-sdlc-duckdb-rust/target/release/forge:*)"
+  mention:
+    if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    permissions: { contents: write, pull-requests: write, issues: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}

@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = ["crates/forge", "crates/monitor", "crates/guard"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+rust-version = "1.80"
+license = "MIT"
+
+[workspace.dependencies]
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive", "env"] }
+duckdb = { version = "1", features = ["bundled"] }
+globset = "0.4"
+hex = "0.4"
+minijinja = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+sha2 = "0.10"
+sqlparser = { version = "0.59", features = ["visitor"] }
+tempfile = "3"
+toml = "0.8"
+walkdir = "2"
+
+forge = { path = "crates/forge" }
+
+[profile.dev.package.libduckdb-sys]
+# 同梱の DuckDB(C++)は最適化して一度だけビルドする
+opt-level = 3

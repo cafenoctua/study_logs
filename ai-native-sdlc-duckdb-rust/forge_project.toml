@@ -1,0 +1,17 @@
+# dbt_project.yml の代わり
+name = "sdlc_sample"
+profile = "sdlc_sample"
+model-paths = ["models"]
+seed-paths = ["seeds"]
+target-path = "forge_target"
+
+[models.staging]
+materialized = "view"
+
+[models.marts]
+materialized = "table"
+
+# seed はターゲットのスキーマと連結せず、そのまま raw に置く
+# (PR #38 の macros/generate_schema_name.sql と同じ動き)
+[seeds]
+schema = "raw"
