@@ -113,7 +113,11 @@ pub fn lint_sql(payload: &Value, root: &str) -> Result<Decision> {
     // 編集でプロジェクトが読めなくなった(存在しない ref、YAML の誤りなど)ときも Claude に返す
     let project = match forge::project::Project::load(Path::new(root)) {
         Ok(p) => p,
-        Err(e) => return Ok(Decision::Block(format!("{path} の編集後、プロジェクトを読み込めません:\n{e:#}"))),
+        Err(e) => {
+            return Ok(Decision::Block(format!(
+                "{path} の編集後、プロジェクトを読み込めません:\n{e:#}"
+            )))
+        }
     };
     let models = match forge::lint::models_from_paths(&project, &[path.to_string()]) {
         Ok(m) => m,
