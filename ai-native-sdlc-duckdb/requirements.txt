@@ -1,0 +1,6 @@
+# dbt は Python パッケージではなく単体バイナリで入れる(scripts/install_dbt.sh)。
+# ここは監視・ops 記録・テスト用の Python 依存だけ。
+# DuckDB は dbt v2 の ADBC ドライバ(DuckDB 1.5 系)とファイル形式を揃える
+duckdb>=1.5,<1.6
+pytest>=8
+pyyaml>=6

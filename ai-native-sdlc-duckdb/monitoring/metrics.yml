@@ -1,0 +1,18 @@
+# 監視対象。BigQuery 版の INFORMATION_SCHEMA.TABLE_STORAGE を
+# DuckDB では count(*) と ops.deployments の最終成功時刻で代替する。
+metrics:
+  - name: row_count
+    targets: [analytics.fct_orders, analytics.dim_customers]
+    method: zscore
+    direction: both
+  - name: freshness_minutes
+    targets: [analytics.fct_orders]
+    method: robust
+    direction: up
+  - name: run_seconds
+    targets: [model.sdlc_sample.fct_orders, model.sdlc_sample.dim_customers]
+    method: robust
+    direction: up
+settings:
+  lookback_days: 28
+  min_history: 14

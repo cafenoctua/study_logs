@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dbt build:*)", "Bash(dbt run:*)", "Bash(dbt test:*)", "Bash(dbt compile:*)", "Bash(dbt ls:*)",
+      "Bash(dbt lint:*)", "Bash(dbt parse:*)", "Bash(pytest:*)",
+      "Bash(make test)", "Bash(make lint)", "Bash(make dev)", "Bash(make ci)",
+      "Bash(python scripts/run_sql.py --read-only:*)",
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)"
+    ],
+    "deny": [
+      "Read(./.env)", "Read(./.env.*)", "Read(./**/*.key)", "Read(./**/sa-*.json)",
+      "Bash(dbt * --target prod*)", "Bash(dbt *--target=prod*)",
+      "Bash(make deploy)", "Bash(bash scripts/deploy.sh:*)",
+      "Bash(rm warehouse/*)", "Bash(rm -rf warehouse:*)",
+      "Bash(git push:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [{ "type": "command", "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect_paths.py\"" }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Edit|Write|MultiEdit",
+        "hooks": [{ "type": "command", "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/lint_sql.py\"" }] }
+    ]
+  }
+}
