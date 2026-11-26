@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.14" }
       - name: Install dbt v2 (standalone binary)
         run: bash scripts/install_dbt.sh "$HOME/.dbt-v2" && echo "$HOME/.dbt-v2/bin" >> "$GITHUB_PATH"
