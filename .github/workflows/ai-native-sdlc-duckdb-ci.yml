@@ -21,7 +21,7 @@ jobs:
       - name: Install Python deps (monitoring / ops / tests only)
         run: pip install -r requirements.txt
       # GCS の代わりに、main の deploy が上げた artifact を本番 manifest / prod.duckdb として取得
-      - uses: dawidd6/action-download-artifact@v6
+      - uses: dawidd6/action-download-artifact@v28
         continue-on-error: true   # 初回は存在しない → 全件 build
         with:
           workflow: ai-native-sdlc-duckdb-deploy.yml
