@@ -256,7 +256,7 @@ jobs:
       # prod manifest.jsonをダウンロード（存在する場合）
       - name: Download prod manifest
         id: download-manifest
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v28
         with:
           workflow: dbt-ci.yml
           branch: main
